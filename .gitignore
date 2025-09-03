@@ -15,7 +15,3 @@ examples-temp
 node_modules
 pnpm-global
 *.timestamp-*.mjs
-
-# 文档目录（从其他仓库获取）
-/docs/
-/temp/
