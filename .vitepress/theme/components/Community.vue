@@ -16,7 +16,7 @@ const communityItems = [
   {
     title: 'GitHub',
     description: 'Contribute to our open-source projects, report issues, and collaborate with developers worldwide.',
-    link: 'https://github.com/mqtt-ai',
+    link: 'https://github.com/emqx/mqtt-for-ai',
     linkText: 'View on GitHub →'
   },
   {

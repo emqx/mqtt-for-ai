@@ -93,7 +93,7 @@ export default withMermaid({
       sidebar: loadSidebarConfigs(),
 
       socialLinks: [
-        { icon: 'github', link: 'https://github.com/mqtt-ai' },
+        { icon: 'github', link: 'https://github.com/emqx/mqtt-for-ai' },
         { icon: 'slack', link: 'https://emqx.slack.com/' },
       ],
     },
