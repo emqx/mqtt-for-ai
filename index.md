@@ -2,6 +2,7 @@
 layout: page
 title: MQTT.AI - Next-Generation MQTT Protocol for AI
 titleTemplate: false
+sidebar: false
 ---
 
 <div class="custom-container">

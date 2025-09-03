@@ -1,6 +1,7 @@
 ---
 layout: page
 title: Enhanced MQTT Protocol Specifications
+sidebar: false
 ---
 
 <div class="custom-container">
