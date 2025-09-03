@@ -1,2 +1,23 @@
-# mqtt-for-ai
-Enhancing MQTT 5.0 with AI capabilities, real-time messaging bus, queuing and data streaming, and modern transport protocols. Accelerating the future of agentic and physical AI.
+# mqtt.ai
+
+## Requirements
+
+- Node.js >= 22
+- PNPM >= 10
+
+## Development
+
+```bash
+# install dependencies
+pnpm install
+
+# serve with hot reload at localhost:5173
+pnpm run dev
+
+# build for production
+pnpm run build
+```
+
+## References
+
+- [Vitepress](https://vitepress.dev/)

@@ -1,0 +1,21 @@
+/coverage
+/src/client/shared.ts
+/src/node/shared.ts
+*.log
+*.tgz
+.DS_Store
+.idea
+.temp
+.vite_opt_cache
+.vscode
+dist
+cache
+temp
+examples-temp
+node_modules
+pnpm-global
+*.timestamp-*.mjs
+
+# 文档目录（从其他仓库获取）
+/docs/
+/temp/

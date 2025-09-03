@@ -1,0 +1,20 @@
+@import 'tailwindcss';
+
+:root {
+  --vp-c-indigo-1: #8d54f6;
+  --vp-c-indigo-2: #a37cec;
+  --vp-c-indigo-3: #c7a9ff;
+  --vp-c-indigo-soft: rgba(157, 100, 255, 0.18);
+}
+
+/* 暗色主题样式调整 */
+.dark {
+  --image-filter: brightness(0) invert(1);
+}
+
+/* 自定义容器类 */
+.custom-container {
+  padding: 0 24px;
+  max-width: 1152px;
+  margin: 0 auto;
+}
