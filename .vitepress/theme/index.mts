@@ -8,7 +8,7 @@ const theme: Theme = {
   enhanceApp({ app, router }) {
     // Add Google Tag Manager
     const gtm = createGtm({
-      id: 'GTM-K4TZSNJP',
+      id: 'GTM-MPG87C5',
       enabled: import.meta.env.PROD,
       debug: false,
     })
