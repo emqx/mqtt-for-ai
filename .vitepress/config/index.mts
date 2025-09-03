@@ -83,9 +83,9 @@ export default withMermaid({
         provider: 'local',
       },
 
-      // editLink: {
-      //   pattern: 'https://github.com/emqx/mcp-over-mqtt-site/edit/main/:path',
-      // },
+      editLink: {
+        pattern: 'https://github.com/emqx/mqtt-for-ai/edit/main/:path',
+      },
 
       nav: [{ text: 'Contact Us', link: 'mailto:mqtt@emqx.io' }],
 
