@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * 文档获取脚本 - 从各个仓库获取并整合文档
- * 使用方法: node --loader ts-node/esm scripts/fetch-docs.mts [--force]
+ * Documentation fetch script - Fetch and integrate docs from various repositories
+ * Usage: node --loader ts-node/esm scripts/fetch-docs.mts [--force]
  */
 
 import { exec } from 'child_process'
@@ -13,40 +13,40 @@ import repos from '../.vitepress/config/repos.mts'
 
 const execAsync = promisify(exec)
 
-// 配置
+// Configuration
 const TEMP_DIR = path.resolve(process.cwd(), './temp')
 const DOCS_DIR = path.resolve(process.cwd(), './docs')
 
-// 解析参数
+// Parse arguments
 const FORCE = process.argv.includes('--force')
 
 /**
- * 执行 shell 命令并返回输出
+ * Execute shell command and return output
  */
 async function runCommand(command: string, cwd?: string): Promise<string> {
   try {
     const { stdout } = await execAsync(command, { cwd })
     return stdout.trim()
   } catch (error: any) {
-    console.error(`命令执行失败: ${command}`)
+    console.error(`Command execution failed: ${command}`)
     console.error(error.message)
     return ''
   }
 }
 
 /**
- * 确保目录存在
+ * Ensure directory exists
  */
 async function ensureDir(dir: string): Promise<void> {
   try {
     await fs.mkdir(dir, { recursive: true })
   } catch (error) {
-    // 目录已存在，忽略错误
+    // Directory already exists, ignore error
   }
 }
 
 /**
- * 清空目录但保留目录结构
+ * Clean directory but preserve directory structure
  */
 async function cleanDir(dir: string): Promise<void> {
   try {
@@ -70,65 +70,65 @@ async function cleanDir(dir: string): Promise<void> {
 }
 
 /**
- * 使用 sparse checkout 获取特定目录，带有重试机制
+ * Use sparse checkout to fetch specific directory with retry mechanism
  */
 async function sparseCheckout(repo: string, branch: string, sourceDir: string, repoTempDir: string): Promise<boolean> {
   const MAX_RETRIES = 3
-  const RETRY_DELAY = 3000 // 3秒延迟
+  const RETRY_DELAY = 3000 // 3 second delay
 
   for (let retryCount = 0; retryCount <= MAX_RETRIES; retryCount++) {
     try {
       if (retryCount > 0) {
-        console.log(`重试第 ${retryCount} 次获取仓库 ${repo}...`)
-        // 重试前删除可能已经部分克隆的目录
+        console.log(`Retrying ${retryCount} time(s) to fetch repository ${repo}...`)
+        // Delete potentially partially cloned directory before retry
         if (await dirExists(repoTempDir)) {
           await fs.rm(repoTempDir, { recursive: true, force: true })
         }
-        // 延迟一段时间后再重试
+        // Delay for a period before retrying
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
       }
 
       if (!(await dirExists(repoTempDir))) {
-        // 克隆仓库
-        console.log(`克隆仓库 ${repo}...`)
+        // Clone repository
+        console.log(`Cloning repository ${repo}...`)
         const cloneResult = await runCommand(
           `git clone --no-checkout --depth 1 -b ${branch} https://github.com/${repo}.git ${repoTempDir}`
         )
 
-        // 如果克隆成功，检查目录是否创建
+        // If clone is successful, check if directory is created
         if (!(await dirExists(repoTempDir))) {
-          throw new Error(`仓库克隆失败，未创建目录: ${repoTempDir}`)
+          throw new Error(`Repository clone failed, directory not created: ${repoTempDir}`)
         }
 
-        // 配置 sparse checkout
-        // 不使用 --cone 模式，以确保能够递归获取子目录
+        // Configure sparse checkout
+        // Don't use --cone mode to ensure recursive fetching of subdirectories
         await runCommand('git sparse-checkout init', repoTempDir)
 
-        // 准备 sparse-checkout 配置，确保递归获取所有子目录和文件
+        // Prepare sparse-checkout configuration, ensure recursive fetching of all subdirectories and files
         let checkoutPattern
         if (!sourceDir || sourceDir === '.') {
-          // 如果源目录为空或为根目录，获取整个仓库
+          // If source directory is empty or root directory, fetch entire repository
           checkoutPattern = '*'
         } else {
-          // 使用通配符确保获取指定目录下的所有子目录和文件
+          // Use wildcards to ensure fetching all subdirectories and files under specified directory
           checkoutPattern = `${sourceDir}/**/*`
         }
 
-        // 确保 sparse-checkout 配置文件所在目录存在
+        // Ensure sparse-checkout config file directory exists
         const sparseDir = path.join(repoTempDir, '.git', 'info')
         await fs.mkdir(sparseDir, { recursive: true })
 
-        // 写入 sparse-checkout 配置文件
+        // Write sparse-checkout configuration file
         const sparsePath = path.join(sparseDir, 'sparse-checkout')
         await fs.writeFile(sparsePath, checkoutPattern)
 
-        console.log(`配置 sparse checkout: ${checkoutPattern}`)
+        console.log(`Configure sparse checkout: ${checkoutPattern}`)
 
-        // 检出指定分支
+        // Checkout specified branch
         await runCommand(`git checkout ${branch}`, repoTempDir)
       } else {
-        // 更新现有的仓库
-        console.log(`更新仓库 ${repo}...`)
+        // Update existing repository
+        console.log(`Updating repository ${repo}...`)
         await runCommand(`git fetch origin ${branch}`, repoTempDir)
         await runCommand(`git checkout ${branch}`, repoTempDir)
         await runCommand(`git pull origin ${branch}`, repoTempDir)
@@ -136,15 +136,15 @@ async function sparseCheckout(repo: string, branch: string, sourceDir: string, r
 
       return true
     } catch (error) {
-      console.error(`获取仓库 ${repo} 尝试 ${retryCount + 1}/${MAX_RETRIES + 1} 失败`)
+      console.error(`Failed to fetch repository ${repo} attempt ${retryCount + 1}/${MAX_RETRIES + 1}`)
       console.error(error)
 
-      // 如果已经达到最大重试次数，返回失败
+      // If maximum retry attempts reached, return failure
       if (retryCount === MAX_RETRIES) {
-        console.error(`在 ${MAX_RETRIES + 1} 次尝试后，获取仓库 ${repo} 失败`)
+        console.error(`Failed to fetch repository ${repo} after ${MAX_RETRIES + 1} attempts`)
         return false
       }
-      // 否则继续下一次重试
+      // Otherwise continue to next retry
     }
   }
 
@@ -152,7 +152,7 @@ async function sparseCheckout(repo: string, branch: string, sourceDir: string, r
 }
 
 /**
- * 检查目录是否存在
+ * Check if directory exists
  */
 async function dirExists(dir: string): Promise<boolean> {
   try {
@@ -164,24 +164,24 @@ async function dirExists(dir: string): Promise<boolean> {
 }
 
 /**
- * 复制文档到目标目录
+ * Copy documents to target directory
  */
 async function copyDocs(sourceDir: string, targetDir: string): Promise<boolean> {
   try {
-    // 确保目标目录存在
+    // Ensure target directory exists
     await ensureDir(targetDir)
 
-    // 清空目标目录
+    // Clean target directory
     await cleanDir(targetDir)
 
-    // 检查源目录是否存在
+    // Check if source directory exists
     if (!(await dirExists(sourceDir))) {
-      console.error(`错误：源目录不存在：${sourceDir}`)
-      console.error(`请修改 repos.mts 文件中相应仓库的 source 字段`)
+      console.error(`Error: Source directory does not exist: ${sourceDir}`)
+      console.error(`Please modify the source field of the corresponding repository in repos.mts file`)
       return false
     }
 
-    // 复制文件
+    // Copy files
     const files = await fs.readdir(sourceDir)
 
     for (const file of files) {
@@ -198,70 +198,70 @@ async function copyDocs(sourceDir: string, targetDir: string): Promise<boolean> 
 
     return true
   } catch (error) {
-    console.error(`复制文档失败: ${sourceDir} -> ${targetDir}`)
+    console.error(`Failed to copy documents: ${sourceDir} -> ${targetDir}`)
     console.error(error)
     return false
   }
 }
 
 /**
- * 清理临时目录
+ * Clean up temporary directory
  */
 async function cleanupTempDir(): Promise<void> {
   if (FORCE) {
-    console.log('清理临时目录...')
+    console.log('Cleaning up temporary directory...')
     await fs.rm(TEMP_DIR, { recursive: true, force: true }).catch(() => {})
   }
 }
 
 /**
- * 主函数
+ * Main function
  */
 async function main() {
-  console.log('开始从仓库获取文档...')
+  console.log('Starting to fetch documents from repositories...')
 
-  // 确保目录存在
+  // Ensure directories exist
   await ensureDir(TEMP_DIR)
   await ensureDir(DOCS_DIR)
 
-  // 处理每个仓库
+  // Process each repository
   for (let i = 0; i < repos.length; i++) {
     const { repo, target, source, branch } = repos[i]
 
-    console.log(`[${i + 1}/${repos.length}] 处理 ${repo} -> ${target}`)
+    console.log(`[${i + 1}/${repos.length}] Processing ${repo} -> ${target}`)
 
-    // 设置目标目录
+    // Set target directory
     const targetDir = path.join(DOCS_DIR, target)
 
-    // 如果目标目录已存在且不强制更新，则跳过
+    // If target directory exists and not forcing update, skip
     if ((await dirExists(targetDir)) && !FORCE) {
-      console.log(`跳过 ${targetDir} (已存在，使用 --force 强制更新)`)
+      console.log(`Skipping ${targetDir} (already exists, use --force to force update)`)
       continue
     }
 
-    // 仓库临时目录
+    // Repository temporary directory
     const repoName = repo.split('/').pop() || ''
     const repoTempDir = path.join(TEMP_DIR, repoName)
 
-    // 使用 sparse checkout 获取特定目录
+    // Use sparse checkout to fetch specific directory
     if (await sparseCheckout(repo, branch, source, repoTempDir)) {
-      // 复制文档到目标目录
+      // Copy documents to target directory
       const sourceDir = path.join(repoTempDir, source)
       if (await copyDocs(sourceDir, targetDir)) {
-        console.log(`成功复制 ${repo} 的文档到 ${targetDir}`)
+        console.log(`Successfully copied documents from ${repo} to ${targetDir}`)
       }
     }
   }
 
-  // 清理临时目录
+  // Clean up temporary directory
   await cleanupTempDir()
 
-  console.log('文档获取完成！')
+  console.log('Document fetching completed!')
 }
 
-// 执行主函数
+// Execute main function
 main().catch((error) => {
-  console.error('文档获取失败')
+  console.error('Document fetching failed')
   console.error(error)
   process.exit(1)
 })

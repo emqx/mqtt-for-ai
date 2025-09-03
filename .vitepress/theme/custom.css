@@ -7,12 +7,12 @@
   --vp-c-indigo-soft: rgba(157, 100, 255, 0.18);
 }
 
-/* 暗色主题样式调整 */
+/* Dark theme style adjustments */
 .dark {
   --image-filter: brightness(0) invert(1);
 }
 
-/* 自定义容器类 */
+/* Custom container class */
 .custom-container {
   padding: 0 24px;
   max-width: 1152px;

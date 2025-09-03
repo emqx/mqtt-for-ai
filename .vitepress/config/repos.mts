@@ -1,11 +1,11 @@
 export interface RepoConfig {
-  /** GitHub 仓库路径 */
+  /** GitHub repository path */
   repo: string
-  /** 文档目标目录 */
+  /** Documentation target directory */
   target: string
-  /** 文档源目录 */
+  /** Documentation source directory */
   source: string
-  /** Git 分支 */
+  /** Git branch */
   branch: string
 }
 

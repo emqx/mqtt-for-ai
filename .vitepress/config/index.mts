@@ -3,19 +3,19 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 import tailwindcss from '@tailwindcss/vite'
 import fs from 'node:fs'
 import path from 'node:path'
-// 加载动态侧边栏配置
+// Load dynamic sidebar configurations
 function loadSidebarConfigs() {
   const docsDir = path.resolve(__dirname, '../../docs')
   const sidebar: Record<string, any> = {}
 
   try {
-    // 获取所有子目录
+    // Get all subdirectories
     const dirs = fs
       .readdirSync(docsDir, { withFileTypes: true })
       .filter((dirent) => dirent.isDirectory())
       .map((dirent) => dirent.name)
 
-    // 处理每个子目录中的 sidebar.json
+    // Process sidebar.json in each subdirectory
     for (const dir of dirs) {
       const sidebarPath = path.join(docsDir, dir, 'sidebar.json')
 
@@ -24,17 +24,17 @@ function loadSidebarConfigs() {
           const sidebarContent = fs.readFileSync(sidebarPath, 'utf-8')
           const sidebarConfig = JSON.parse(sidebarContent)
 
-          // 如果 sidebar.json 有有效的配置，添加到总配置中
+          // If sidebar.json has valid configuration, add to main config
           if (sidebarConfig.path && sidebarConfig.items) {
             sidebar[sidebarConfig.path] = sidebarConfig.items
           }
         }
       } catch (err) {
-        console.error(`加载侧边栏配置失败: ${sidebarPath}`, err)
+        console.error(`Failed to load sidebar config: ${sidebarPath}`, err)
       }
     }
   } catch (err) {
-    console.error('加载侧边栏配置出错:', err)
+    console.error('Error loading sidebar configs:', err)
   }
 
   return sidebar
@@ -87,7 +87,7 @@ export default withMermaid({
 
       nav: [{ text: 'Contact Us', link: 'mailto:mqtt@emqx.io' }],
 
-      // 从各个项目目录加载动态侧边栏配置
+      // Load dynamic sidebar configurations from each project directory
       sidebar: loadSidebarConfigs(),
 
       socialLinks: [
