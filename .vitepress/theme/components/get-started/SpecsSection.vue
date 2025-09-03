@@ -7,7 +7,7 @@
           'Model state synchronization across devices',
           'Efficient model parameter distribution',
           'Real-time model performance monitoring'
-        ]" link="/docs/mcp-over-mqtt/"
+        ]" link="/mcp-over-mqtt/"
         caption="MCP enables seamless model distribution and synchronization across devices">
         <template #diagram>
           <svg viewBox="0 0 600 200" class="diagram">
@@ -34,7 +34,7 @@
           'Ultra-low latency communication',
           'Priority-based message scheduling',
           'Time-synchronized device coordination'
-        ]" link="/docs/mqtt-rt/" caption="Deterministic communication between robotics components">
+        ]" link="/mqtt-rt/" caption="Deterministic communication between robotics components">
         <template #diagram>
           <svg viewBox="0 0 600 200" class="diagram">
             <circle cx="150" cy="100" r="40" fill="currentColor" class="diagram-shape" />
@@ -57,8 +57,7 @@
           'Better congestion control and loss recovery',
           'Enhanced security with built-in TLS 1.3',
           'Stream multiplexing for efficient data transfer'
-        ]" link="/docs/mqtt-quic/"
-        caption="QUIC provides multiple streams over a single connection">
+        ]" link="/mqtt-quic/" caption="QUIC provides multiple streams over a single connection">
         <template #diagram>
           <svg viewBox="0 0 600 200" class="diagram">
             <rect x="50" y="50" width="100" height="100" fill="currentColor"
@@ -81,7 +80,7 @@
           'High-throughput data streams with replay support',
           'Flexible configuration options',
           'Fully compatible with MQTT 5.0 clients'
-        ]" link="/docs/mqtt-queues-streams/"
+        ]" link="/mqtt-queues-streams/"
         caption="Enterprise messaging patterns in your MQTT ecosystem">
         <template #diagram>
           <svg viewBox="0 0 600 200" class="diagram">
@@ -139,7 +138,7 @@
           'Logical operators for complex filter conditions',
           'Time-based and state-based filtering',
           'Optimized performance with pattern compilation'
-        ]" link="/docs/mqtt-subscription-filters/"
+        ]" link="/mqtt-subscription-filters/"
         caption="Advanced filtering enables precise message routing and processing">
         <template #diagram>
           <svg viewBox="0 0 600 200" class="diagram">
@@ -166,7 +165,7 @@
           'Reduced network overhead and improved efficiency',
           'Compatible with standard MQTT 5.0 clients',
           'Configurable batch size and payload limits'
-        ]" link="/docs/mqtt-batch-publishing/"
+        ]" link="/mqtt-batch-publishing/"
         caption="Efficiently batch multiple messages for improved throughput">
         <template #diagram>
           <svg viewBox="0 0 600 200" class="diagram">

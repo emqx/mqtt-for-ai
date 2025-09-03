@@ -1,21 +1,21 @@
 {
-  "path": "/docs/mcp-over-mqtt/",
+  "path": "/mcp-over-mqtt/",
   "items": [
     {
       "text": "Overview",
-      "link": "/docs/mcp-over-mqtt/"
+      "link": "/mcp-over-mqtt/"
     },
     {
       "text": "Architecture",
-      "link": "/docs/mcp-over-mqtt/specification/2025-03-26/basic/architecture"
+      "link": "/mcp-over-mqtt/specification/2025-03-26/basic/architecture"
     },
     {
       "text": "Use Cases",
-      "link": "/docs/mcp-over-mqtt/use-cases"
+      "link": "/mcp-over-mqtt/use-cases"
     },
     {
       "text": "MQTT Transport",
-      "link": "/docs/mcp-over-mqtt/specification/2025-03-26/basic/mqtt_transport"
+      "link": "/mcp-over-mqtt/specification/2025-03-26/basic/mqtt_transport"
     },
     {
       "text": "SDKs",
@@ -23,7 +23,7 @@
       "items": [
         {
           "text": "Python SDK",
-          "link": "/docs/mcp-over-mqtt/sdk/python/"
+          "link": "/mcp-over-mqtt/sdk/python/"
         }
       ]
     }

@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 // Load dynamic sidebar configurations
 function loadSidebarConfigs() {
-  const docsDir = path.resolve(__dirname, '../../docs')
+  const docsDir = path.resolve(__dirname, '../../')
   const sidebar: Record<string, any> = {}
 
   try {
@@ -46,6 +46,8 @@ const isTestEnv = process.env.TEST_ENV === 'true'
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
   ...defineConfig({
+    base: '/mqtt-for-ai/',
+
     title: 'MQTT.AI',
     description: 'MQTT.AI - Next-Generation MQTT Protocol for AI',
 
@@ -54,7 +56,7 @@ export default withMermaid({
     },
 
     sitemap: {
-      hostname: 'https://mqtt.ai',
+      hostname: 'https://www.emqx.com/mqtt-for-ai/',
     },
 
     buildEnd: ({ outDir }) => {

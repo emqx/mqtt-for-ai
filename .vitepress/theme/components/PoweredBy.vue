@@ -6,7 +6,8 @@
         <p class="powered-by-description">EMQ pioneers the world's first MQTT and AI platform,
           transforming IoT data streams from manufacturing, autonomous driving, and robotics into
           real-time intelligence.</p>
-        <a href="https://www.emqx.com" class="powered-by-link" target="_blank">Learn more about EMQ
+        <a href="https://www.emqx.com/en" class="powered-by-link" target="_blank">Learn more about
+          EMQ
           →</a>
       </div>
       <div class="powered-by-logo">

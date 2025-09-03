@@ -4,43 +4,45 @@
       <div v-for="feature in features" :key="feature.title" class="feature-card">
         <h3 class="feature-title">{{ feature.title }}</h3>
         <p class="feature-description">{{ feature.description }}</p>
-        <a :href="feature.link" class="feature-link"></a>
+        <a :href="withBase(feature.link)" class="feature-link"></a>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { withBase } from 'vitepress'
+
 const features = [
   {
     title: 'MCP over MQTT',
     description: 'Model Context Protocol for AI model management and coordination over MQTT, enabling efficient model deployment and inference.',
-    link: '/docs/mcp-over-mqtt/'
+    link: '/mcp-over-mqtt/'
   },
   {
     title: 'MQTT/RT',
     description: 'Realtime messaging bus for robotics and automation, providing deterministic, low-latency communication.',
-    link: '/docs/mqtt-rt/'
+    link: '/mqtt-rt/'
   },
   {
     title: 'MQTT over QUIC',
     description: 'Modern transport protocol implementation for improved performance, security, and reliability in IoT communications.',
-    link: '/docs/mqtt-quic/'
+    link: '/mqtt-quic/'
   },
   {
     title: 'MQTT Queues and Streams',
     description: 'Add enterprise messaging patterns to MQTT 5.0 with persistent queues and high-throughput streams while maintaining protocol compatibility.',
-    link: '/docs/mqtt-queues-streams/'
+    link: '/mqtt-queues-streams/'
   },
   {
     title: 'MQTT Subscription Filters',
     description: 'Enhanced topic filtering capabilities with advanced pattern matching, logical operators, and optimized performance.',
-    link: '/docs/mqtt-subscription-filters/'
+    link: '/mqtt-subscription-filters/'
   },
   {
     title: 'MQTT Batch Publishing',
     description: 'Optimize message delivery by sending multiple logical messages within a single MQTT packet, reducing overhead and improving throughput.',
-    link: '/docs/mqtt-batch-publishing/'
+    link: '/mqtt-batch-publishing/'
   }
 ]
 </script>

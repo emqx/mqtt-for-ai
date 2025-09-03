@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { withBase } from 'vitepress'
+</script>
+
 <template>
   <div class="hero-section">
     <h1 class="hero-title">MQTT for AI</h1>
@@ -5,7 +9,7 @@
       queuing and data streaming, and modern transport protocols. Accelerating the future of agentic
       and physical AI.</p>
     <div class="hero-buttons">
-      <a href="/get-started.html" class="hero-button primary">Get Started</a>
+      <a :href="withBase('/get-started.html')" class="hero-button primary">Get Started</a>
       <a href="mailto:mqtt@emqx.io" class="hero-button secondary">Contact Us</a>
     </div>
   </div>

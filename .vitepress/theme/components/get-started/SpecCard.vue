@@ -6,7 +6,7 @@
       <ul>
         <li v-for="(item, index) in features" :key="index">{{ item }}</li>
       </ul>
-      <a :href="link" class="spec-link">View Full Specification →</a>
+      <a :href="withBase(link)" class="spec-link">View Full Specification →</a>
     </div>
     <div class="spec-diagram">
       <slot name="diagram"></slot>
@@ -16,6 +16,8 @@
 </template>
 
 <script setup>
+import { withBase } from 'vitepress'
+
 defineProps({
   title: {
     type: String,
