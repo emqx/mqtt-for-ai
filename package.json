@@ -1,12 +1,11 @@
 {
-  "name": "mqtt.ai",
+  "name": "mqtt-for-ai",
   "type": "module",
   "private": true,
   "packageManager": "pnpm@10.6.5",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "build:test": "cross-env TEST_ENV=true vitepress build",
     "preview": "vitepress preview",
     "postinstall": "pnpm tsx scripts/fetch-docs.mts",
     "fetch-docs": "pnpm tsx scripts/fetch-docs.mts",

@@ -40,9 +40,6 @@ function loadSidebarConfigs() {
   return sidebar
 }
 
-// Check if test environment
-const isTestEnv = process.env.TEST_ENV === 'true'
-
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
   ...defineConfig({
@@ -57,17 +54,6 @@ export default withMermaid({
 
     sitemap: {
       hostname: 'https://www.emqx.com/mqtt-for-ai/',
-    },
-
-    buildEnd: ({ outDir }) => {
-      // Generate robots.txt only in test environment
-      if (isTestEnv) {
-        const testRobotsContent = 'User-agent: *\nDisallow: /\n'
-        fs.writeFileSync(path.resolve(outDir, 'robots.txt'), testRobotsContent)
-        console.log('✓ Generated robots.txt for test environment (disallow indexing)')
-      } else {
-        console.log('✓ Using production robots.txt (allow indexing)')
-      }
     },
 
     srcExclude: ['**/README.md', 'temp/**'],
