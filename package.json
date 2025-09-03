@@ -6,10 +6,7 @@
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview",
-    "postinstall": "pnpm tsx scripts/fetch-docs.mts",
-    "fetch-docs": "pnpm tsx scripts/fetch-docs.mts",
-    "fetch-docs:force": "pnpm tsx scripts/fetch-docs.mts --force"
+    "preview": "vitepress preview"
   },
   "devDependencies": {
     "@gtm-support/vue-gtm": "^3.1.0",
