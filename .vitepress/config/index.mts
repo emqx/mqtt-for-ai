@@ -11,6 +11,8 @@ export default withMermaid({
     title: 'MQTT.AI',
     description: 'MQTT.AI - Next-Generation MQTT Protocol for AI',
 
+    head: [['link', { rel: 'icon', href: '/mqtt-for-ai/favicon.ico' }]],
+
     vite: {
       plugins: [tailwindcss()],
     },
