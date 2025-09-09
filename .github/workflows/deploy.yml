@@ -47,12 +47,12 @@ jobs:
     - name: upload files to s3
       run: |
         cd .vitepress/dist
-        aws s3 sync . s3://mqtt.ai/ --delete
+        aws s3 sync . s3://mqtt.ai/mqtt-for-ai/ --delete
 
     - name: upload files to cos
       run: |
         pip3 install coscmd
         coscmd config -a ${{ secrets.TENCENT_COS_ID }} -s ${{ secrets.TENCENT_COS_KEY }} -b mqtt-ai-1302406139 -r ap-shanghai
-        coscmd delete -r -f / || true
+        coscmd delete -r -f /mqtt-for-ai || true
         coscmd config -a ${{ secrets.TENCENT_COS_ID }} -s ${{ secrets.TENCENT_COS_KEY }} -b mqtt-ai-1302406139 -e cos.accelerate.myqcloud.com
-        coscmd upload -r .vitepress/dist/ /
+        coscmd upload -r .vitepress/dist/ /mqtt-for-ai/
