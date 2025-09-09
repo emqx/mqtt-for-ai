@@ -1,0 +1,59 @@
+name: Deploy Docs
+
+concurrency:
+  group: ${{ github.ref_name }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'emqx'
+    steps:
+    - name: clone repository
+      uses: actions/checkout@v5
+
+    - name: enable corepack
+      run: corepack enable
+
+    - name: install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+        run_install: false
+
+    - name: install node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: 'frontend/.nvmrc'
+        cache: 'pnpm'
+
+    - name: install dependencies
+      run: pnpm install
+
+    - name: build docs
+      run: pnpm run build
+
+    - name: set aws credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: upload files to s3
+      run: |
+        cd .vitepress/dist
+        aws s3 sync . s3://mqtt.ai/ --delete
+
+    - name: upload files to cos
+      run: |
+        pip3 install coscmd
+        coscmd config -a ${{ secrets.TENCENT_COS_ID }} -s ${{ secrets.TENCENT_COS_KEY }} -b mqtt-ai-1302406139 -r ap-shanghai
+        coscmd delete -r -f / || true
+        coscmd config -a ${{ secrets.TENCENT_COS_ID }} -s ${{ secrets.TENCENT_COS_KEY }} -b mqtt-ai-1302406139 -e cos.accelerate.myqcloud.com
+        coscmd upload -r .vitepress/dist/ /
