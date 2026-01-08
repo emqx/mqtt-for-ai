@@ -1,10 +1,17 @@
 import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
+import { h } from 'vue'
 import './custom.css'
 import { createGtm } from '@gtm-support/vue-gtm'
+import NotFound from './components/NotFound.vue'
 
 const theme: Theme = {
   extends: DefaultTheme,
+  Layout: () => {
+    return h(DefaultTheme.Layout, null, {
+      'not-found': () => h(NotFound),
+    })
+  },
   enhanceApp({ app, router }) {
     // Add Google Tag Manager
     const gtm = createGtm({
