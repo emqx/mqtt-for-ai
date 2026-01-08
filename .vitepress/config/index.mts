@@ -26,6 +26,8 @@ export default withMermaid({
     themeConfig: {
       // https://vitepress.dev/reference/default-theme-config
 
+      logoLink: 'https://www.emqx.com/en/mqtt-for-ai',
+
       footer: {
         copyright: '© 2025 MQTT.AI. All rights reserved.',
       },
