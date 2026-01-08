@@ -28,6 +28,11 @@ export default withMermaid({
 
       logoLink: 'https://www.emqx.com/en/mqtt-for-ai',
 
+      notFound: {
+        linkText: 'Go to Homepage',
+        link: 'https://www.emqx.com/en/mqtt-for-ai',
+      } as { linkText: string; link: string },
+
       footer: {
         copyright: '© 2025 MQTT.AI. All rights reserved.',
       },
