@@ -18,12 +18,11 @@ const link = (notFound as { link?: string }).link ?? '/'
     <h1 class="title">{{ title }}</h1>
     <div class="divider" />
     <blockquote class="quote">{{ quote }}</blockquote>
-    <div class="action">
+    <div class="action vp-raw">
       <a
         class="link"
         :href="link"
         :aria-label="linkLabel"
-        rel="external"
       >
         {{ linkText }}
       </a>

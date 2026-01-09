@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import tailwindcss from '@tailwindcss/vite'
@@ -15,6 +16,16 @@ export default withMermaid({
 
     vite: {
       plugins: [tailwindcss()],
+      resolve: {
+        alias: [
+          {
+            find: /^.*\/VPNavBarTitle\.vue$/,
+            replacement: fileURLToPath(
+              new URL('../theme/components/NavBarTitle.vue', import.meta.url)
+            ),
+          },
+        ],
+      },
     },
 
     sitemap: {
@@ -26,10 +37,7 @@ export default withMermaid({
     themeConfig: {
       // https://vitepress.dev/reference/default-theme-config
 
-      logoLink: {
-        link: 'https://www.emqx.com/en/mqtt-for-ai',
-        rel: 'external',
-      },
+      logoLink: 'https://www.emqx.com/en/mqtt-for-ai',
 
       notFound: {
         linkText: 'Go to Homepage',
