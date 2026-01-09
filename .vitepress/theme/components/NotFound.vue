@@ -23,6 +23,7 @@ const link = (notFound as { link?: string }).link ?? '/'
         class="link"
         :href="link"
         :aria-label="linkLabel"
+        rel="external"
       >
         {{ linkText }}
       </a>
