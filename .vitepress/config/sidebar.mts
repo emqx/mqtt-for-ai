@@ -34,7 +34,7 @@ export const sidebar: DefaultTheme.Config['sidebar'] = [
     ],
   },
   {
-    text: 'MQTT-RT',
+    text: 'MQTT/RT',
     link: '/mqtt-rt/',
   },
   {
