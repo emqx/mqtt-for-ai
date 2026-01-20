@@ -9,8 +9,8 @@ export default withMermaid({
   ...defineConfig({
     base: '/mqtt-for-ai/',
 
-    title: 'MQTT.AI',
-    description: 'MQTT.AI - Next-Generation MQTT Protocol for AI',
+    title: 'MQTT for AI',
+    description: 'MQTT for AI - Next-Generation MQTT Protocol for AI',
 
     head: [['link', { rel: 'icon', href: '/mqtt-for-ai/favicon.ico' }]],
 
@@ -20,9 +20,7 @@ export default withMermaid({
         alias: [
           {
             find: /^.*\/VPNavBarTitle\.vue$/,
-            replacement: fileURLToPath(
-              new URL('../theme/components/NavBarTitle.vue', import.meta.url)
-            ),
+            replacement: fileURLToPath(new URL('../theme/components/NavBarTitle.vue', import.meta.url)),
           },
         ],
       },
@@ -45,7 +43,7 @@ export default withMermaid({
       } as { linkText: string; link: string },
 
       footer: {
-        copyright: '© 2025 MQTT.AI. All rights reserved.',
+        copyright: '© 2026 EMQ Technologies Inc. All rights reserved.',
       },
 
       search: {
