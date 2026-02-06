@@ -70,6 +70,11 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 2. Using QoS 1 allows publishers to receive MQTT v5 PUBACK responses that can carry broker reason codes, for example `No matching subscribers`.
 3. Brokers and clients **MUST** support QoS 1 on discovery, request, and reply paths for interoperability.
 
+## A2A User Property Naming
+
+1. MQTT User Properties defined by this binding **MUST** use the `a2a-` prefix.
+2. New binding-specific properties defined by implementations **SHOULD** also use the `a2a-` prefix to avoid collisions.
+
 ## Agent Card Requirements
 
 1. Card payloads **SHOULD** conform to the A2A Agent Card schema.
@@ -92,6 +97,35 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 4. Responders **MUST** validate bearer token claims (including `exp`, `iss`, and `aud`) and required scopes before processing the request.
 5. Request messages carrying bearer tokens **MUST** be sent over TLS-secured MQTT transport.
 6. Implementations **MUST NOT** echo bearer tokens in reply/event payloads or MQTT properties; implementations **SHOULD** redact such values from logs and telemetry.
+
+## Optional MQTT Native Binary Artifact Mode
+
+1. Baseline interoperability remains JSON payloads, where binary `Part.raw` content is represented using base64 in JSON serialization.
+2. Implementations **MAY** support an optional native binary artifact mode for high-throughput scenarios.
+3. Mode selection for artifact encoding is controlled by request MQTT User Property `a2a-artifact-mode`.
+4. Requesters **MAY** set `a2a-artifact-mode` to one of:
+   - `json` (default, JSON-compatible artifact payloads)
+   - `binary` (native MQTT binary artifact payloads)
+5. If `a2a-artifact-mode=binary` is requested and supported by the responder, the responder **MAY** publish artifact chunks as raw binary payloads on the reply stream topic.
+6. If `a2a-artifact-mode` is absent, unknown, or unsupported by the responder, implementations **MUST** use `json` mode.
+7. Responders **SHOULD** indicate the chosen mode in reply messages using MQTT User Property:
+   - key: `a2a-artifact-mode`
+   - value: `json` or `binary`
+8. Each native binary artifact message **MUST**:
+   - echo the request `Correlation Data`
+   - set MQTT Payload Format Indicator to `0` (unspecified bytes)
+   - use MQTT Content Type when artifact media type is known
+   - include MQTT User Properties:
+     - key: `a2a-event-type`, value: `task-artifact-update`
+     - key: `a2a-task-id`, value: task identifier
+     - key: `a2a-artifact-id`, value: artifact identifier
+     - key: `a2a-chunk-seqno`, value: chunk sequence number
+     - key: `a2a-last-chunk`, value: `true` or `false`
+   - optionally include:
+     - key: `a2a-context-id`, value: context identifier
+9. MQTT User Property values are UTF-8 strings; non-string metadata **MUST** be string-encoded.
+10. Native binary artifact messages **SHOULD** use MQTT QoS 1.
+11. `a2a-last-chunk=true` indicates artifact chunk completion only; stream completion semantics still follow terminal task status (`TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, `TASK_STATE_CANCELED`).
 
 ## Optional Broker-Managed Status via MQTT User Properties
 
@@ -121,6 +155,7 @@ An implementation is Extended conformant if it additionally supports one or more
 1. Trusted JKU policy enforcement
 2. Broker-managed status via MQTT User Properties
 3. Extended observability over request/reply/event traffic
+4. Native binary artifact mode over MQTT
 
 ## Future Work
 
