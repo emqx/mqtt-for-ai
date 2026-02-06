@@ -30,6 +30,12 @@ a2a/v1/{method}/{org_id}/{unit_id}/{agent_id}
 
 Where `{method}` is typically `request`, `reply`, or `event`.
 
+## Identifier Format
+
+1. Identifiers used in this profile (`org_id`, `unit_id`, `agent_id`, `pool_id`, and `group_id`) **MUST** match:
+   - `^[A-Za-z0-9._]+$`
+2. Identifiers **MUST NOT** contain `/`, `+`, `#`, whitespace, or any character outside the set above.
+
 ## Discovery Interoperability
 
 1. Agent Cards **MAY** be discovered via HTTP well-known endpoints defined by core A2A conventions.
@@ -53,6 +59,29 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 5. MQTT `Correlation Data` is transport-level request/reply correlation and **MUST NOT** be used as an A2A task identifier.
 6. For newly created tasks, responders **MUST** return a server-generated A2A `Task.id` in the response payload.
 7. Requesters **MUST** use that returned `Task.id` for subsequent task operations (for example `tasks/get`, `tasks/cancel`, and subscriptions).
+
+## Optional Shared Subscription Dispatch
+
+1. This profile supports an optional unit-scoped shared dispatch mode so compatible responders (same contract/intent) can share request load while keeping standard A2A request/reply behavior.
+2. Canonical shared pool request topic:
+   - `a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
+3. Requesters **MUST** publish pooled tasks to the canonical non-shared pool request topic and **MUST NOT** publish directly to `$share/...`.
+4. Pool members **MAY** consume pooled requests via:
+   - `$share/{group_id}/a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
+5. All members of the same `{org_id}/{unit_id}/{pool_id}` pool **MUST** use the same `group_id`.
+6. `group_id` **SHOULD** be deterministic and stable. Recommended base value:
+   - `a2a.{org_id}.{unit_id}.{pool_id}`
+7. If an implementation derives `group_id` from external labels, it **SHOULD** replace characters outside `[A-Za-z0-9._]` with `_` before use.
+8. Implementations **MUST NOT** use random per-instance values (for example UUIDs) as `group_id`.
+9. Implementations **SHOULD** enforce broker length limits for `group_id` (recommended max `64`); if needed, truncate and append a short hash suffix.
+10. A responder handling a pooled request **MUST** include MQTT User Property:
+    - key: `a2a-responder-agent-id`
+    - value: concrete responder `agent_id`
+11. For pooled requests that create tasks, requesters **SHOULD** persist (`Task.id`, `a2a-responder-agent-id`) and **SHOULD** route follow-up operations to the concrete responder direct request topic:
+    - `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+12. A designated agent in the unit **MAY** act as pool registrar and publish/update metadata describing `pool_id`, membership, and the pool request topic.
+13. How pool members coordinate membership, liveness, leader election, and failover is implementation-specific and out of scope for this profile.
+14. Shared dispatch is intentionally limited to `{org_id}/{unit_id}` scope in this version because unit boundaries map to common tenancy/policy boundaries; cross-unit or org-global shared pools are not defined.
 
 ## Streaming Reply Mapping (`message/stream`)
 
@@ -159,6 +188,7 @@ An implementation is Extended conformant if it additionally supports one or more
 2. Broker-managed status via MQTT User Properties
 3. Extended observability over request/reply/event traffic
 4. Native binary artifact mode over MQTT
+5. Shared-subscription request dispatch
 
 ## Future Work
 
