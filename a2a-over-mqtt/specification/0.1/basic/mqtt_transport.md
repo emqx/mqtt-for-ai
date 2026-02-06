@@ -82,15 +82,26 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 2. Brokers **MAY** reject cards having an untrusted `jwksUri`.
 3. JWKS retrieval **SHOULD** use HTTPS with TLS certificate validation.
 
+## OAuth 2.0 and OIDC over MQTT User Properties
+
+1. OAuth 2.0/OIDC token acquisition is out-of-band for this binding and occurs between the requester and an authorization server.
+2. If the selected agent requires OAuth 2.0/OIDC, the requester **MUST** include an access token on each request message as an MQTT v5 User Property:
+   - key: `a2a-authorization`
+   - value: `Bearer <access_token>`
+3. Broker connection authentication (for example username/password or mTLS) is independent of per-request OAuth authorization and **MUST NOT** be treated as a replacement for it.
+4. Responders **MUST** validate bearer token claims (including `exp`, `iss`, and `aud`) and required scopes before processing the request.
+5. Request messages carrying bearer tokens **MUST** be sent over TLS-secured MQTT transport.
+6. Implementations **MUST NOT** echo bearer tokens in reply/event payloads or MQTT properties; implementations **SHOULD** redact such values from logs and telemetry.
+
 ## Optional Broker-Managed Status via MQTT User Properties
 
 To improve discovery liveness, a broker **MAY** attach MQTT v5 User Properties when forwarding discovery messages to subscribers.
 
 Recommended properties:
 
-- `a2a-status = "online"` when a registration is accepted or the agent is active
-- `a2a-status = "offline"` when the agent is observed offline
-- `a2a-status-source = "broker"` to indicate transport-level broker status
+- key: `a2a-status`, value: `"online"` when a registration is accepted or the agent is active
+- key: `a2a-status`, value: `"offline"` when the agent is observed offline
+- key: `a2a-status-source`, value: `"broker"` to indicate transport-level broker status
 
 ## Conformance Levels
 
