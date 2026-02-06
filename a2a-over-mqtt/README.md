@@ -16,6 +16,16 @@ The A2A over MQTT profile defines:
 - **Request/Reply Topic Conventions**: consistent mapping for request, reply, and event topics.
 - **Minimal Security Guidance**: optional trust metadata for Agent Cards without mandating broker internals.
 
+## Comparison of Transport Binding Capabilities
+
+The choice of transport binding significantly impacts the scalability and latency of a multi-agent system.
+
+| Transport | Connection Model | Streaming Type | Payload Encoding | Scaling Potential |
+| --- | --- | --- | --- | --- |
+| HTTP + SSE | Request-Response | Unidirectional (Server Push) | UTF-8 (Base64 for binary) | Low (Connection limits) |
+| gRPC | Bidirectional Stream | Full-Duplex | Binary (Protobuf) | High (Point-to-Point) |
+| MQTT | Pub/Sub | Discrete Event Pushes | Binary (Native) | Very High (Broker-mediated) |
+
 ## Limitations
 
 This profile is broker-neutral by design. It does not standardize broker internal architecture, UI, or administrative APIs.
