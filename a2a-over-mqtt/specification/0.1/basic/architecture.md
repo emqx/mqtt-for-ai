@@ -38,4 +38,4 @@ Clients subscribe to discovery topics to find agents and publish requests to req
 
 ### MQTT Broker
 
-The broker routes discovery, request/reply, and event messages. It may optionally enforce trust policies for Agent Cards or inject broker-managed status metadata, but those choices are implementation-specific and not required for core conformance.
+The broker routes discovery, request/reply, and event messages. It may optionally enforce trust policies for Agent Cards or attach broker-managed status via MQTT User Properties when forwarding discovery messages, but those choices are implementation-specific and not required for core conformance.
