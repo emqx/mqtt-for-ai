@@ -50,6 +50,9 @@ Where `{method}` is typically `request`, `reply`, or `event`.
    echo `Correlation Data`. Replies **SHOULD** be published using MQTT QoS 1.
 4. Recommended reply topic pattern:
    `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`.
+5. MQTT `Correlation Data` is transport-level request/reply correlation and **MUST NOT** be used as an A2A task identifier.
+6. For newly created tasks, responders **MUST** return a server-generated A2A `Task.id` in the response payload.
+7. Requesters **MUST** use that returned `Task.id` for subsequent task operations (for example `tasks/get`, `tasks/cancel`, and subscriptions).
 
 ## Streaming Reply Mapping (`message/stream`)
 
