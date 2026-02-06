@@ -32,22 +32,28 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 
 ## Discovery Behavior
 
-1. Agents register by publishing retained Agent Cards to discovery topics using MQTT QoS 1.
+1. Agents register by publishing retained Agent Cards to discovery topics and **SHOULD** use MQTT QoS 1.
 2. Brokers **MUST** preserve retained Agent Cards for discovery subscribers.
 3. Subscribers to matching discovery filters **MUST** receive retained cards per MQTT retained delivery rules.
 
 ## Request/Reply Mapping (MQTT v5)
 
-1. Requesters **MUST** publish to `a2a/v1/request/{org_id}/{unit_id}/{agent_id}` using MQTT QoS 1.
+1. Requesters **SHOULD** publish to `a2a/v1/request/{org_id}/{unit_id}/{agent_id}` using MQTT QoS 1.
 2. Requesters **MUST** set MQTT 5 `Response Topic` and `Correlation Data`.
 3. Responders **MUST** publish replies to the provided `Response Topic` and **MUST**
-   echo `Correlation Data`. Replies **MUST** be published using MQTT QoS 1.
+   echo `Correlation Data`. Replies **SHOULD** be published using MQTT QoS 1.
 4. Recommended reply topic pattern:
    `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`.
 
 ## Event Delivery
 
 1. Event messages published to `a2a/v1/event/{org_id}/{unit_id}/{agent_id}` **MAY** use MQTT QoS 0.
+
+## QoS Guidance
+
+1. MQTT QoS 1 is the recommended default for discovery registration, request, and reply publications.
+2. Using QoS 1 allows publishers to receive MQTT v5 PUBACK responses that can carry broker reason codes, for example `No matching subscribers`.
+3. Brokers and clients **MUST** support QoS 1 on discovery, request, and reply paths for interoperability.
 
 ## Agent Card Requirements
 
@@ -80,7 +86,7 @@ An implementation is Core conformant if it supports:
 1. Discovery retained topic model
 2. Request/reply topic model
 3. MQTT 5 reply correlation mapping (Response Topic + Correlation Data)
-4. QoS requirements: MQTT QoS 1 for discovery registration and request/reply publishing
+4. QoS interoperability support: MQTT QoS 1 on discovery, request, and reply paths
 
 ### Extended Conformance
 
