@@ -51,6 +51,15 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 4. Recommended reply topic pattern:
    `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`.
 
+## Streaming Reply Mapping (`message/stream`)
+
+1. For streaming A2A operations, responders **MUST** publish each stream item as a discrete MQTT message to the request-provided `Response Topic`.
+2. Each stream message **MUST** echo the same MQTT 5 `Correlation Data` as the originating request.
+3. Stream payloads **SHOULD** use A2A stream update structures, including `TaskStatusUpdateEvent` and `TaskArtifactUpdateEvent`.
+4. Stream updates **SHOULD** be published using MQTT QoS 1 so publishers can receive PUBACK reason codes (for example, `No matching subscribers`).
+5. For this MQTT binding, receipt of a `TaskStatusUpdateEvent.status.state` value of `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, or `TASK_STATE_CANCELED` **MUST** be treated as the end of that stream for the given correlation.
+6. This end-of-stream rule applies to reply-stream messages on the request/reply path, not to general-purpose `a2a/v1/event/...` publications.
+
 ## Event Delivery
 
 1. Event messages published to `a2a/v1/event/{org_id}/{unit_id}/{agent_id}` **MAY** use MQTT QoS 0.
