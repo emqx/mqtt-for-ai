@@ -30,6 +30,12 @@ a2a/v1/{method}/{org_id}/{unit_id}/{agent_id}
 
 Where `{method}` is typically `request`, `reply`, or `event`.
 
+## Discovery Interoperability
+
+1. Agent Cards **MAY** be discovered via HTTP well-known endpoints defined by core A2A conventions.
+2. For MQTT-compliant agents, publishing retained Agent Cards to `a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` is **RECOMMENDED**.
+3. A client **MAY** discover a card via HTTP and then choose MQTT by selecting an MQTT-capable entry from `supportedInterfaces`.
+
 ## Discovery Behavior
 
 1. Agents register by publishing retained Agent Cards to discovery topics and **SHOULD** use MQTT QoS 1.
