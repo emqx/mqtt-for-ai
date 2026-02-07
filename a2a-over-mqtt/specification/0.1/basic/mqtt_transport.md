@@ -108,7 +108,7 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 6. For pooled requests, requesters **MUST** validate presence of `a2a-responder-agent-id` on pooled responses; missing property **MUST** be treated as a protocol error.
 7. If a response creates or references a task, requesters **MUST** persist `Task.id`; for pooled requests they **MUST** persist (`Task.id`, `a2a-responder-agent-id`).
 8. Follow-up task operations (`tasks/get`, `tasks/cancel`, subsequent stream/task interactions) **SHOULD** be routed to direct responder topics once responder identity is known.
-9. On timeout, requesters **MAY** retry with new `Correlation Data`; idempotency and duplicate-task risk are method-specific and **MUST** be handled by requester policy.
+9. Requesters **MUST** implement the retry and timeout behavior defined in `Requester Retry and Timeout Profile`.
 
 ## Responder Behavior (Interop)
 
@@ -120,6 +120,26 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 6. Replies and stream items **SHOULD** be sent with QoS 1 and **MUST NOT** be retained.
 7. Responders processing pooled requests **MUST** include User Property `a2a-responder-agent-id` on responses.
 8. Responders **MUST NOT** echo bearer tokens in payloads or MQTT properties.
+
+## Requester Retry and Timeout Profile
+
+1. This section defines the baseline retry/timeout behavior for requester interoperability and is part of Core conformance.
+2. Requesters **MUST** implement these defaults (configurable by deployment policy):
+   - `reply_first_timeout_ms`: `15000`
+   - `stream_idle_timeout_ms`: `30000`
+   - `max_attempts`: `3` total attempts (initial attempt plus up to two retries)
+   - `retry_backoff_ms`: exponential (`1000`, `2000`, `4000`) with jitter of `+/-20%`
+3. For a single logical operation retried multiple times, requesters **MUST** keep the same A2A/JSON-RPC request id and **MUST** generate new MQTT `Correlation Data` for each publish attempt.
+4. Requesters **MUST** stop retrying after the first valid correlated reply is received (success or error).
+5. Requesters **MUST** treat these conditions as retry-eligible until `max_attempts` is reached:
+   - publish not accepted by the MQTT client/broker path
+   - request timed out waiting for first correlated reply (`reply_first_timeout_ms`)
+6. Once any correlated stream item is received, requesters **MUST NOT** retry the original request publish.
+7. If stream progress stalls longer than `stream_idle_timeout_ms` after at least one stream item, requesters **SHOULD** recover using task follow-up (`tasks/get`) with the known `Task.id` instead of republishing the original request.
+8. For pooled requests:
+   - retries before responder selection **MUST** target the pool topic
+   - after responder identity is known (`a2a-responder-agent-id`), follow-up operations and retries **MUST** target that responder's direct request topic
+9. Requesters **MAY** set MQTT Message Expiry Interval on request publications; if set, it **SHOULD** be greater than `reply_first_timeout_ms`.
 
 ## Optional Shared Subscription Dispatch
 
@@ -272,4 +292,3 @@ An implementation is Extended conformant if it additionally supports one or more
 1. HTTP JSON-RPC and A2A over MQTT interop
 2. SSE and WebSocket transport guidance for streaming and bidirectional flows
 3. Cross-broker conformance test suite and certification profile
-4. Standard retry/timeout profile for requester implementations
