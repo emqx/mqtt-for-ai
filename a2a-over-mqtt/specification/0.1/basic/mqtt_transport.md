@@ -216,6 +216,31 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 6. Implementations **MUST NOT** echo bearer tokens in reply/event payloads or MQTT properties.
 7. Requesters **SHOULD** refresh/replace expired tokens before retrying protected requests.
 
+## Optional Untrusted-Broker Security Profile
+
+1. This profile defines an optional end-to-end payload protection mode for environments where broker/topic ACLs are not sufficient to guarantee confidentiality.
+2. Profile identifier:
+   - MQTT User Property key: `a2a-security-profile`
+   - value: `ubsp-v1`
+3. When `a2a-security-profile=ubsp-v1` is set on a request, requester and responder **MUST** use end-to-end encrypted payloads for all request, reply, and stream messages for that interaction.
+4. Under `ubsp-v1`, payloads **MUST** use JOSE JWE serialization:
+   - MQTT `Content Type` **MUST** be `application/jose+json` (JSON serialization) or `application/jose` (compact serialization).
+5. Requesters **MUST** encrypt request payloads to the target responder public key resolved from trusted agent metadata (for example Agent Card extensions such as `jwksUri`, or trusted OIDC/OAuth metadata links).
+6. Responders **MUST** encrypt reply/stream payloads to the requester public key resolved from trusted metadata.
+7. Requesters using `ubsp-v1` **MUST** provide discoverable public key metadata so responders can resolve a reply encryption key.
+8. Under `ubsp-v1`, request publications **MUST** include MQTT User Properties:
+   - key: `a2a-security-profile`, value: `ubsp-v1`
+   - key: `a2a-requester-agent-id`, value: requester `agent_id`
+   - key: `a2a-recipient-agent-id`, value: intended responder `agent_id`
+9. Under `ubsp-v1`, response publications **MUST** include MQTT User Properties:
+   - key: `a2a-security-profile`, value: `ubsp-v1`
+   - key: `a2a-requester-agent-id`, value: requester `agent_id`
+   - key: `a2a-responder-agent-id`, value: responder `agent_id`
+10. Implementations **MAY** include `a2a-recipient-kid` to indicate the JWK `kid` used for encryption.
+11. Responders **MUST** verify that `a2a-recipient-agent-id` matches local responder identity before processing a `ubsp-v1` request; mismatches **MUST** be rejected as `transport_protocol_error`.
+12. Requesters and responders using `ubsp-v1` **SHOULD** enforce replay protection for protected payloads (for example `jti` and short-lived `exp` claims in protected content).
+13. This profile reduces payload confidentiality/integrity dependency on broker ACL correctness, but does not replace transport TLS, authentication, or authorization requirements in this specification.
+
 ## Optional MQTT Native Binary Artifact Mode
 
 1. Baseline interoperability remains JSON payloads, where binary `Part.raw` content is represented using base64 in JSON serialization.
@@ -305,6 +330,7 @@ An implementation is Extended conformant if it additionally supports one or more
 3. Extended observability over request/reply/event traffic
 4. Native binary artifact mode over MQTT
 5. Shared-subscription request dispatch
+6. Untrusted-broker security profile (`ubsp-v1`)
 
 ## Future Work
 
