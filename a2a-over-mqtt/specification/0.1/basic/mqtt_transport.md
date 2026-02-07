@@ -4,11 +4,24 @@ title: MQTT Transport
 
 # The MQTT Transport for A2A
 
-This profile defines a broker-neutral A2A over MQTT topic model for discovery and messaging. It standardizes retained Agent Card discovery, request/reply mappings, and minimum security guidance while allowing broker-specific implementation choices.
+This profile defines a broker-neutral A2A over MQTT topic model for discovery and messaging. It standardizes retained Agent Card discovery, request/reply mappings, request-scoped security metadata, and interoperable client behavior.
+
+## Profile Scope
+
+1. This profile specifies MQTT v5 topic conventions and message-property mappings for A2A traffic.
+2. This profile defines interoperable behavior for requester clients and responder clients.
+3. Broker-internal implementation details remain implementation-specific unless explicitly stated.
 
 ## Terminology
 
 The key words **MUST**, **SHOULD**, and **MAY** are to be interpreted as described in RFC 2119.
+
+Additional terms used in this profile:
+
+- `requester`: client agent that publishes A2A requests
+- `responder`: client agent that consumes requests and publishes replies
+- `discovery subscriber`: client that subscribes to discovery topics
+- `pool`: optional unit-scoped shared request endpoint consumed via MQTT shared subscriptions
 
 ## Topic Model
 
@@ -20,7 +33,7 @@ Agent Cards **MUST** be published as retained messages at:
 a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}
 ```
 
-### Interaction Topics
+### Direct Interaction Topics
 
 Interaction topics **SHOULD** use:
 
@@ -30,11 +43,28 @@ a2a/v1/{method}/{org_id}/{unit_id}/{agent_id}
 
 Where `{method}` is typically `request`, `reply`, or `event`.
 
+### Optional Pool Request Topic
+
+Shared pool dispatch uses:
+
+```
+a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
+```
+
 ## Identifier Format
 
 1. Identifiers used in this profile (`org_id`, `unit_id`, `agent_id`, `pool_id`, and `group_id`) **MUST** match:
    - `^[A-Za-z0-9._]+$`
 2. Identifiers **MUST NOT** contain `/`, `+`, `#`, whitespace, or any character outside the set above.
+
+## Client Session Requirements
+
+1. Clients implementing this profile **MUST** use MQTT v5.
+2. Requesters **MUST** subscribe to the intended reply topic before publishing requests that use that topic as MQTT `Response Topic`.
+3. Request/reply/event publications defined by this profile **MUST NOT** be retained.
+4. Requesters **SHOULD** use a reply topic suffix with high collision resistance (`reply_suffix`) so concurrent requesters do not overlap reply streams.
+5. Clients **SHOULD** use reconnect behavior that preserves subscriptions/session state where broker policy allows.
+6. Connections carrying bearer tokens **MUST** use TLS.
 
 ## Discovery Interoperability
 
@@ -42,15 +72,23 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 2. For MQTT-compliant agents, publishing retained Agent Cards to `a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` is **RECOMMENDED**.
 3. A client **MAY** discover a card via HTTP and then choose MQTT by selecting an MQTT-capable entry from `supportedInterfaces`.
 
-## Discovery Behavior
+## Discovery Publisher Behavior
 
 1. Agents register by publishing retained Agent Cards to discovery topics and **SHOULD** use MQTT QoS 1.
-2. Brokers **MUST** preserve retained Agent Cards for discovery subscribers.
-3. Subscribers to matching discovery filters **MUST** receive retained cards per MQTT retained delivery rules.
+2. To unregister, agents **SHOULD** clear retained discovery state using the broker-supported retained-delete mechanism for the same topic.
+3. Agents updating cards **SHOULD** republish the full card payload for that topic.
+
+## Discovery Subscriber Behavior
+
+1. Discovery subscribers **SHOULD** subscribe using scoped filters such as:
+   - `a2a/v1/discovery/{org_id}/{unit_id}/+`
+2. Subscribers **MUST** process retained discovery messages as current registration state.
+3. Subscribers **SHOULD** treat subsequent retained updates on the same discovery topic as replacement state for that agent.
+4. Subscribers **MAY** combine HTTP-discovered cards and MQTT-discovered cards, but topic-scoped MQTT cards are authoritative for MQTT routing.
 
 ## Request/Reply Mapping (MQTT v5)
 
-1. Requesters **SHOULD** publish to `a2a/v1/request/{org_id}/{unit_id}/{agent_id}` using MQTT QoS 1.
+1. Requesters **SHOULD** publish requests to `a2a/v1/request/{org_id}/{unit_id}/{agent_id}` using MQTT QoS 1.
 2. Requesters **MUST** set MQTT 5 `Response Topic` and `Correlation Data`.
 3. Responders **MUST** publish replies to the provided `Response Topic` and **MUST**
    echo `Correlation Data`. Replies **SHOULD** be published using MQTT QoS 1.
@@ -59,6 +97,29 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 5. MQTT `Correlation Data` is transport-level request/reply correlation and **MUST NOT** be used as an A2A task identifier.
 6. For newly created tasks, responders **MUST** return a server-generated A2A `Task.id` in the response payload.
 7. Requesters **MUST** use that returned `Task.id` for subsequent task operations (for example `tasks/get`, `tasks/cancel`, and subscriptions).
+
+## Requester Behavior (Interop)
+
+1. Requesters **MUST** keep an in-flight map keyed by MQTT `Correlation Data` for active requests.
+2. `Correlation Data` values **MUST** be unique across concurrently in-flight requests from that requester on the same reply topic.
+3. Requesters **SHOULD** publish requests with QoS 1 and **MUST NOT** set retained.
+4. Requesters **MUST** include request-scoped auth properties (for example `a2a-authorization`) when required by the target responder.
+5. On reply, requesters **MUST** match `Correlation Data`; replies with unknown or missing correlation **MUST** be treated as protocol errors and ignored.
+6. For pooled requests, requesters **MUST** validate presence of `a2a-responder-agent-id` on pooled responses; missing property **MUST** be treated as a protocol error.
+7. If a response creates or references a task, requesters **MUST** persist `Task.id`; for pooled requests they **MUST** persist (`Task.id`, `a2a-responder-agent-id`).
+8. Follow-up task operations (`tasks/get`, `tasks/cancel`, subsequent stream/task interactions) **SHOULD** be routed to direct responder topics once responder identity is known.
+9. On timeout, requesters **MAY** retry with new `Correlation Data`; idempotency and duplicate-task risk are method-specific and **MUST** be handled by requester policy.
+
+## Responder Behavior (Interop)
+
+1. Responders **MUST** subscribe to their direct request topic and **MAY** additionally subscribe to pool request topics when operating in shared dispatch mode.
+2. If a request omits `Response Topic` or `Correlation Data`, responders **SHOULD** reject it as invalid protocol input; if no reply path is available, responders **MAY** drop.
+3. Responders **MUST** validate request payloads and return protocol/application errors on the provided reply path when possible.
+4. For new tasks, responders **MUST** generate `Task.id` server-side and return it in the response payload.
+5. Responders **MUST** echo `Correlation Data` unchanged on all replies and stream items for a request.
+6. Replies and stream items **SHOULD** be sent with QoS 1 and **MUST NOT** be retained.
+7. Responders processing pooled requests **MUST** include User Property `a2a-responder-agent-id` on responses.
+8. Responders **MUST NOT** echo bearer tokens in payloads or MQTT properties.
 
 ## Optional Shared Subscription Dispatch
 
@@ -90,17 +151,21 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 3. Stream payloads **SHOULD** use A2A stream update structures, including `TaskStatusUpdateEvent` and `TaskArtifactUpdateEvent`.
 4. Stream updates **SHOULD** be published using MQTT QoS 1 so publishers can receive PUBACK reason codes (for example, `No matching subscribers`).
 5. For this MQTT binding, receipt of a `TaskStatusUpdateEvent.status.state` value of `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, or `TASK_STATE_CANCELED` **MUST** be treated as the end of that stream for the given correlation.
-6. This end-of-stream rule applies to reply-stream messages on the request/reply path, not to general-purpose `a2a/v1/event/...` publications.
+6. Requesters **MUST** treat that terminal status as stream completion for the correlated request.
+7. If a requester does not receive terminal status within its stream timeout policy, it **MAY** issue follow-up task retrieval (`tasks/get`) using `Task.id`.
+8. This end-of-stream rule applies to reply-stream messages on the request/reply path, not to general-purpose `a2a/v1/event/...` publications.
 
 ## Event Delivery
 
 1. Event messages published to `a2a/v1/event/{org_id}/{unit_id}/{agent_id}` **MAY** use MQTT QoS 0.
+2. Event publications are outside request/reply correlation unless explicitly tied by application metadata.
 
 ## QoS Guidance
 
 1. MQTT QoS 1 is the recommended default for discovery registration, request, and reply publications.
 2. Using QoS 1 allows publishers to receive MQTT v5 PUBACK responses that can carry broker reason codes, for example `No matching subscribers`.
 3. Brokers and clients **MUST** support QoS 1 on discovery, request, and reply paths for interoperability.
+4. Event publications **MAY** use QoS 0 when occasional loss is acceptable.
 
 ## A2A User Property Naming
 
@@ -128,7 +193,8 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 3. Broker connection authentication (for example username/password or mTLS) is independent of per-request OAuth authorization and **MUST NOT** be treated as a replacement for it.
 4. Responders **MUST** validate bearer token claims (including `exp`, `iss`, and `aud`) and required scopes before processing the request.
 5. Request messages carrying bearer tokens **MUST** be sent over TLS-secured MQTT transport.
-6. Implementations **MUST NOT** echo bearer tokens in reply/event payloads or MQTT properties; implementations **SHOULD** redact such values from logs and telemetry.
+6. Implementations **MUST NOT** echo bearer tokens in reply/event payloads or MQTT properties.
+7. Requesters **SHOULD** refresh/replace expired tokens before retrying protected requests.
 
 ## Optional MQTT Native Binary Artifact Mode
 
@@ -169,6 +235,16 @@ Recommended properties:
 - key: `a2a-status`, value: `"offline"` when the agent is observed offline
 - key: `a2a-status-source`, value: `"broker"` to indicate transport-level broker status
 
+Subscribers **MUST** treat these status properties as advisory transport metadata and **MUST NOT** treat them as replacement for card payload semantics.
+
+## Error Handling and Deduplication
+
+1. Requesters and responders **MUST** tolerate duplicate delivery behavior possible with MQTT QoS 1.
+2. Requesters **SHOULD** de-duplicate stream/reply items using available keys, such as `Correlation Data`, `a2a-task-id`, `a2a-artifact-id`, and `a2a-chunk-seqno`.
+3. Unknown `a2a-` User Properties **SHOULD** be ignored unless marked mandatory by this profile.
+4. Implementations **MAY** use MQTT Message Expiry Interval for stale-request control.
+5. If message expiry indicates the request is stale before processing, responders **SHOULD** drop it and **MAY** publish an expiration-related error when a valid reply path exists.
+
 ## Conformance Levels
 
 ### Core Conformance
@@ -178,7 +254,8 @@ An implementation is Core conformant if it supports:
 1. Discovery retained topic model
 2. Request/reply topic model
 3. MQTT 5 reply correlation mapping (Response Topic + Correlation Data)
-4. QoS interoperability support: MQTT QoS 1 on discovery, request, and reply paths
+4. Requester and responder interop behavior defined in this profile
+5. QoS interoperability support: MQTT QoS 1 on discovery, request, and reply paths
 
 ### Extended Conformance
 
@@ -195,3 +272,4 @@ An implementation is Extended conformant if it additionally supports one or more
 1. HTTP JSON-RPC and A2A over MQTT interop
 2. SSE and WebSocket transport guidance for streaming and bidirectional flows
 3. Cross-broker conformance test suite and certification profile
+4. Standard retry/timeout profile for requester implementations
