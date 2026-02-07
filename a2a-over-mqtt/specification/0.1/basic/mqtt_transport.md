@@ -265,6 +265,24 @@ Subscribers **MUST** treat these status properties as advisory transport metadat
 4. Implementations **MAY** use MQTT Message Expiry Interval for stale-request control.
 5. If message expiry indicates the request is stale before processing, responders **SHOULD** drop it and **MAY** publish an expiration-related error when a valid reply path exists.
 
+## Mandatory Binding-Specific Error Mapping (JSON-RPC over MQTT)
+
+1. Error replies on MQTT request/reply paths **MUST** use JSON-RPC `error` objects.
+2. Error replies **MUST** echo the request MQTT `Correlation Data`.
+3. For generic JSON-RPC and A2A method/application errors (for example parse, invalid request, method not found, invalid params, authn/authz failures), implementations **MUST** follow the core A2A/JSON-RPC definitions.
+4. This MQTT binding defines the following mandatory transport-specific mapping:
+
+| Condition | JSON-RPC `error.code` | `error.data.a2a_error` |
+| --- | --- | --- |
+| Request expired before processing | `-32003` | `request_expired` |
+| Temporary responder unavailable/overloaded | `-32004` | `responder_unavailable` |
+| MQTT binding protocol metadata invalid | `-32005` | `transport_protocol_error` |
+
+5. For `-32003` to `-32005`, responders **MUST** include `error.data.a2a_error` exactly as shown above.
+6. `transport_protocol_error` covers invalid or missing MQTT binding metadata required by this profile (for example malformed or missing request/reply binding properties).
+7. Requesters **MUST** treat `-32003` and `-32004` as retry-eligible at application policy level; transport-layer retries still follow `Requester Retry and Timeout Profile`.
+8. Requesters **MUST** treat `-32005` as non-retryable unless request metadata is corrected.
+
 ## Conformance Levels
 
 ### Core Conformance
@@ -276,6 +294,7 @@ An implementation is Core conformant if it supports:
 3. MQTT 5 reply correlation mapping (Response Topic + Correlation Data)
 4. Requester and responder interop behavior defined in this profile
 5. QoS interoperability support: MQTT QoS 1 on discovery, request, and reply paths
+6. Mandatory error-code mapping defined in this profile
 
 ### Extended Conformance
 
