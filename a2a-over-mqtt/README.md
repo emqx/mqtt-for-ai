@@ -1,4 +1,4 @@
-# a2a-over-mqtt
+# a2a-over-mqtt [draft]
 
 This is the specification and reference materials for A2A over MQTT, a broker-neutral profile for agent discovery and messaging.
 
