@@ -16,10 +16,10 @@ Agent A sends one request and receives multiple response messages (status/artifa
 ### End-to-End Flow
 
 1. Agent A publishes one request to:
-   - `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
    - QoS: `1` (recommended)
    - MQTT v5 properties:
-     - `Response Topic`: `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
+     - `Response Topic`: `$a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
      - `Correlation Data`: unique request correlation bytes
 2. Agent B accepts request and starts work.
 3. Agent B publishes multiple reply messages to `Response Topic`:

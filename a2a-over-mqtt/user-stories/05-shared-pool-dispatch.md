@@ -12,16 +12,16 @@ Agent A sends a request to a unit-level shared pool topic. Multiple compatible a
 
 - Compatible responder agents are registered under the same unit and support the same service contract.
 - Responders subscribe with the same shared group:
-  - `$share/{group_id}/a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
+  - `$share/{group_id}/$a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
 - Agent A has a subscribed reply topic and can publish to the pool request topic.
 
 ### End-to-End Flow
 
 1. Agent A publishes request to:
-   - `a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
    - QoS: `1` (recommended)
    - MQTT v5 properties:
-     - `Response Topic`: `a2a/v1/reply/{org_id}/{unit_id}/{client_agent_id}/{reply_suffix}`
+     - `Response Topic`: `$a2a/v1/reply/{org_id}/{unit_id}/{client_agent_id}/{reply_suffix}`
      - `Correlation Data`: unique request correlation bytes
 2. Broker delivers the request to one responder in the shared group.
 3. Selected responder processes request and publishes reply to `Response Topic`:
@@ -34,7 +34,7 @@ Agent A sends a request to a unit-level shared pool topic. Multiple compatible a
    - `Task.id`
    - `a2a-responder-agent-id`
 6. Agent A sends follow-up task operations to the concrete responder direct topic:
-   - `a2a/v1/request/{org_id}/{unit_id}/{a2a-responder-agent-id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/{a2a-responder-agent-id}`
 
 ### SDK Requirements Checklist
 

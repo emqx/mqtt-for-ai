@@ -16,10 +16,10 @@ Agent A requests native binary artifact mode and receives multiple binary artifa
 ### End-to-End Flow
 
 1. Agent A publishes one request to:
-   - `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
    - QoS: `1` (recommended)
    - MQTT v5 properties:
-     - `Response Topic`: `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
+     - `Response Topic`: `$a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
      - `Correlation Data`: unique request correlation bytes
      - User Property key: `a2a-artifact-mode`
      - User Property value: `binary`

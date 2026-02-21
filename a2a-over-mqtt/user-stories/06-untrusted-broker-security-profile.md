@@ -20,11 +20,11 @@ Agent A and Agent B exchange request/reply/stream payloads over MQTT where broke
 1. Agent A discovers Agent B and resolves Agent B encryption key from trusted metadata.
 2. Agent A builds a JSON-RPC request payload and encrypts it as JWE.
 3. Agent A publishes request to:
-   - `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
    - QoS: `1` (recommended)
    - MQTT `Content Type`: `application/jose+json` (or `application/jose`)
    - MQTT v5 properties:
-     - `Response Topic`: `a2a/v1/reply/{org_id}/{unit_id}/{client_agent_id}/{reply_suffix}`
+     - `Response Topic`: `$a2a/v1/reply/{org_id}/{unit_id}/{client_agent_id}/{reply_suffix}`
      - `Correlation Data`: unique request correlation bytes
      - `a2a-security-profile=ubsp-v1`
      - `a2a-requester-agent-id=<requester_agent_id>`

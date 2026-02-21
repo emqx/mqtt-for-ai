@@ -30,7 +30,7 @@ Additional terms used in this profile:
 Agent Cards **MUST** be published as retained messages at:
 
 ```
-a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}
+$a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}
 ```
 
 ### Direct Interaction Topics
@@ -38,7 +38,7 @@ a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}
 Interaction topics **SHOULD** use:
 
 ```
-a2a/v1/{method}/{org_id}/{unit_id}/{agent_id}
+$a2a/v1/{method}/{org_id}/{unit_id}/{agent_id}
 ```
 
 Where `{method}` is typically `request`, `reply`, or `event`.
@@ -48,7 +48,7 @@ Where `{method}` is typically `request`, `reply`, or `event`.
 Shared pool dispatch uses:
 
 ```
-a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
+$a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 ```
 
 ## Identifier Format
@@ -69,7 +69,7 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 ## Discovery Interoperability
 
 1. Agent Cards **MAY** be discovered via HTTP well-known endpoints defined by core A2A conventions.
-2. For MQTT-compliant agents, publishing retained Agent Cards to `a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` is **RECOMMENDED**.
+2. For MQTT-compliant agents, publishing retained Agent Cards to `$a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` is **RECOMMENDED**.
 3. A client **MAY** discover a card via HTTP and then choose MQTT by selecting an MQTT-capable entry from `supportedInterfaces`.
 
 ## Discovery Publisher Behavior
@@ -81,19 +81,19 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 ## Discovery Subscriber Behavior
 
 1. Discovery subscribers **SHOULD** subscribe using scoped filters such as:
-   - `a2a/v1/discovery/{org_id}/{unit_id}/+`
+   - `$a2a/v1/discovery/{org_id}/{unit_id}/+`
 2. Subscribers **MUST** process retained discovery messages as current registration state.
 3. Subscribers **SHOULD** treat subsequent retained updates on the same discovery topic as replacement state for that agent.
 4. Subscribers **MAY** combine HTTP-discovered cards and MQTT-discovered cards, but topic-scoped MQTT cards are authoritative for MQTT routing.
 
 ## Request/Reply Mapping (MQTT v5)
 
-1. Requesters **SHOULD** publish requests to `a2a/v1/request/{org_id}/{unit_id}/{agent_id}` using MQTT QoS 1.
+1. Requesters **SHOULD** publish requests to `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}` using MQTT QoS 1.
 2. Requesters **MUST** set MQTT 5 `Response Topic` and `Correlation Data`.
 3. Responders **MUST** publish replies to the provided `Response Topic` and **MUST**
    echo `Correlation Data`. Replies **SHOULD** be published using MQTT QoS 1.
 4. Recommended reply topic pattern:
-   `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`.
+   `$a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`.
 5. MQTT `Correlation Data` is transport-level request/reply correlation and **MUST NOT** be used as an A2A task identifier.
 6. For newly created tasks, responders **MUST** return a server-generated A2A `Task.id` in the response payload.
 7. Requesters **MUST** use that returned `Task.id` for subsequent task operations (for example `tasks/get`, `tasks/cancel`, and subscriptions).
@@ -145,10 +145,10 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 
 1. This profile supports an optional unit-scoped shared dispatch mode so compatible responders (same contract/intent) can share request load while keeping standard A2A request/reply behavior.
 2. Canonical shared pool request topic:
-   - `a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
 3. Requesters **MUST** publish pooled tasks to the canonical non-shared pool request topic and **MUST NOT** publish directly to `$share/...`.
 4. Pool members **MAY** consume pooled requests via:
-   - `$share/{group_id}/a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
+   - `$share/{group_id}/$a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}`
 5. All members of the same `{org_id}/{unit_id}/{pool_id}` pool **MUST** use the same `group_id`.
 6. `group_id` **SHOULD** be deterministic and stable. Recommended base value:
    - `a2a.{org_id}.{unit_id}.{pool_id}`
@@ -159,7 +159,7 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
     - key: `a2a-responder-agent-id`
     - value: concrete responder `agent_id`
 11. For pooled requests that create tasks, requesters **SHOULD** persist (`Task.id`, `a2a-responder-agent-id`) and **SHOULD** route follow-up operations to the concrete responder direct request topic:
-    - `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+    - `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
 12. A designated agent in the unit **MAY** act as pool registrar and publish/update metadata describing `pool_id`, membership, and the pool request topic.
 13. How pool members coordinate membership, liveness, leader election, and failover is implementation-specific and out of scope for this profile.
 14. Shared dispatch is intentionally limited to `{org_id}/{unit_id}` scope in this version because unit boundaries map to common tenancy/policy boundaries; cross-unit or org-global shared pools are not defined.
@@ -173,11 +173,11 @@ a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 5. For this MQTT binding, receipt of a `TaskStatusUpdateEvent.status.state` value of `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, or `TASK_STATE_CANCELED` **MUST** be treated as the end of that stream for the given correlation.
 6. Requesters **MUST** treat that terminal status as stream completion for the correlated request.
 7. If a requester does not receive terminal status within its stream timeout policy, it **MAY** issue follow-up task retrieval (`tasks/get`) using `Task.id`.
-8. This end-of-stream rule applies to reply-stream messages on the request/reply path, not to general-purpose `a2a/v1/event/...` publications.
+8. This end-of-stream rule applies to reply-stream messages on the request/reply path, not to general-purpose `$a2a/v1/event/...` publications.
 
 ## Event Delivery
 
-1. Event messages published to `a2a/v1/event/{org_id}/{unit_id}/{agent_id}` **MAY** use MQTT QoS 0.
+1. Event messages published to `$a2a/v1/event/{org_id}/{unit_id}/{agent_id}` **MAY** use MQTT QoS 0.
 2. Event publications are outside request/reply correlation unless explicitly tied by application metadata.
 
 ## QoS Guidance

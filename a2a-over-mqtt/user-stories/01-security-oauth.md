@@ -19,7 +19,7 @@ A user asks Agent A to complete a task with Agent B. Agent A discovers Agent B f
 ### Preconditions
 
 - Agent B publishes retained Agent Card at:
-  - `a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}`
+  - `$a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}`
 - Agent B card includes:
   - `supportedInterfaces` with MQTT binding
   - `securitySchemes` + `securityRequirements` requiring OAuth scopes
@@ -28,17 +28,17 @@ A user asks Agent A to complete a task with Agent B. Agent A discovers Agent B f
 ### End-to-End Flow
 
 1. Agent A subscribes to:
-   - `a2a/v1/discovery/{org_id}/+/+`
+   - `$a2a/v1/discovery/{org_id}/+/+`
 2. Agent A receives retained cards and selects Agent B.
 3. Agent A checks required security scopes from Agent B card.
 4. Agent A obtains OAuth token from IdP/AS:
    - If interactive flow is needed, Agent A asks the user to complete login/MFA.
    - Agent A receives `access_token`.
 5. Agent A sends request to Agent B:
-   - Topic: `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+   - Topic: `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
    - QoS: `1` (recommended)
    - MQTT v5 properties:
-     - `Response Topic`: `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
+     - `Response Topic`: `$a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
      - `Correlation Data`: request identifier bytes
      - User Property key: `a2a-authorization`
      - User Property value: `Bearer <access_token>`

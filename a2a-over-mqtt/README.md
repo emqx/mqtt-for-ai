@@ -19,7 +19,7 @@ The A2A over MQTT profile defines:
 ## Discovery Interoperability
 
 Agent Cards may also be discovered through HTTP well-known endpoints defined by core A2A conventions.
-For MQTT-compliant agents, broker-based discovery on `a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` is recommended.
+For MQTT-compliant agents, broker-based discovery on `$a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` is recommended.
 Clients can discover over HTTP and then choose MQTT from `supportedInterfaces` when invoking the agent.
 
 ## Comparison of Transport Binding Capabilities

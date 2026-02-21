@@ -11,15 +11,15 @@ Agent A sends one request to Agent B and receives exactly one response message o
 ### Preconditions
 
 - Agent B is discoverable on:
-  - `a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}`
+  - `$a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}`
 - Agent A has selected Agent B and has a writable request topic plus a subscribed reply topic.
 
 ### End-to-End Flow
 
 1. Agent A subscribes to reply topic:
-   - `a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
+   - `$a2a/v1/reply/{org_id}/{unit_id}/{agent_id}/{reply_suffix}`
 2. Agent A publishes one request to:
-   - `a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
+   - `$a2a/v1/request/{org_id}/{unit_id}/{agent_id}`
    - QoS: `1` (recommended)
    - MQTT v5 properties:
      - `Response Topic`: reply topic above
