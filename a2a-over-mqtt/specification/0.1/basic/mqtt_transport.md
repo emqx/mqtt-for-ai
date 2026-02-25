@@ -54,17 +54,17 @@ $a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 ## Identifier Format
 
 1. Identifiers used in this profile (`org_id`, `unit_id`, `agent_id`, `pool_id`, and `group_id`) **MUST** match:
-   - `^[A-Za-z0-9._]+$`
-2. Identifiers **MUST NOT** contain `/`, `+`, `#`, whitespace, or any character outside the set above.
+   - `^[A-Za-z0-9_.-]+$`
 
 ## Client Session Requirements
 
 1. Clients implementing this profile **MUST** use MQTT v5.
 2. Requesters **MUST** subscribe to the intended reply topic before publishing requests that use that topic as MQTT `Response Topic`.
 3. Request/reply/event publications defined by this profile **MUST NOT** be retained.
-4. Requesters **SHOULD** use a reply topic suffix with high collision resistance (`reply_suffix`) so concurrent requesters do not overlap reply streams.
-5. Clients **SHOULD** use reconnect behavior that preserves subscriptions/session state where broker policy allows.
-6. Connections carrying bearer tokens **MUST** use TLS.
+4. Clients **MUST** set MQTT `Client ID` in the format `{org_id}/{unit_id}/{agent_id}`.
+5. Requesters **SHOULD** use a reply topic suffix with high collision resistance (`reply_suffix`) so concurrent requesters do not overlap reply streams.
+6. Clients **SHOULD** use reconnect behavior that preserves subscriptions/session state where broker policy allows.
+7. Connections carrying bearer tokens **MUST** use TLS.
 
 ## Discovery Interoperability
 
