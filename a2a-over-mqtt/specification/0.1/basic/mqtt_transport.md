@@ -60,11 +60,10 @@ $a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 
 1. Clients implementing this profile **MUST** use MQTT v5.
 2. Requesters **MUST** subscribe to the intended reply topic before publishing requests that use that topic as MQTT `Response Topic`.
-3. Request/reply/event publications defined by this profile **MUST NOT** be retained.
-4. Clients **MUST** set MQTT `Client ID` in the format `{org_id}/{unit_id}/{agent_id}`.
-5. Requesters **SHOULD** use a reply topic suffix with high collision resistance (`reply_suffix`) so concurrent requesters do not overlap reply streams.
-6. Clients **SHOULD** use reconnect behavior that preserves subscriptions/session state where broker policy allows.
-7. Connections carrying bearer tokens **MUST** use TLS.
+3. Clients **MUST** set MQTT `Client ID` in the format `{org_id}/{unit_id}/{agent_id}`.
+4. Requesters **SHOULD** use a reply topic suffix with high collision resistance (`reply_suffix`) so concurrent requesters do not overlap reply streams.
+5. Clients **SHOULD** use reconnect behavior that preserves subscriptions/session state where broker policy allows.
+6. Connections carrying bearer tokens **MUST** use TLS.
 
 ## Discovery Interoperability
 
@@ -102,7 +101,7 @@ $a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 
 1. Requesters **MUST** keep an in-flight map keyed by MQTT `Correlation Data` for active requests.
 2. `Correlation Data` values **MUST** be unique across concurrently in-flight requests from that requester on the same reply topic.
-3. Requesters **SHOULD** publish requests with QoS 1 and **MUST NOT** set retained.
+3. Requesters **SHOULD** publish requests with QoS 1.
 4. Requesters **MUST** include request-scoped auth properties (for example `a2a-authorization`) when required by the target responder.
 5. On reply, requesters **MUST** match `Correlation Data`; replies with unknown or missing correlation **MUST** be treated as protocol errors and ignored.
 6. For pooled requests, requesters **MUST** validate presence of `a2a-responder-agent-id` on pooled responses; missing property **MUST** be treated as a protocol error.
@@ -117,7 +116,7 @@ $a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 3. Responders **MUST** validate request payloads and return protocol/application errors on the provided reply path when possible.
 4. For new tasks, responders **MUST** generate `Task.id` server-side and return it in the response payload.
 5. Responders **MUST** echo `Correlation Data` unchanged on all replies and stream items for a request.
-6. Replies and stream items **SHOULD** be sent with QoS 1 and **MUST NOT** be retained.
+6. Replies and stream items **SHOULD** be sent with QoS 1.
 7. Responders processing pooled requests **MUST** include User Property `a2a-responder-agent-id` on responses.
 8. Responders **MUST NOT** echo bearer tokens in payloads or MQTT properties.
 
