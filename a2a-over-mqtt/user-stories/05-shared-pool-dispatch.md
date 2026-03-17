@@ -29,7 +29,7 @@ Agent A sends a request to a unit-level shared pool topic. Multiple compatible a
    - includes User Property:
      - key: `a2a-responder-agent-id`
      - value: concrete responder `agent_id`
-4. If a task is created, reply includes server-generated `Task.id`.
+4. If a task is created, reply echoes the requester-generated `Task.id`.
 5. Agent A records tuple:
    - `Task.id`
    - `a2a-responder-agent-id`

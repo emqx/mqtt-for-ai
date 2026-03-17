@@ -44,5 +44,5 @@ Agent A sends one request and receives multiple response messages (status/artifa
 - Maintain per-correlation stream state.
 - Parse and dispatch status vs artifact updates.
 - Detect terminal state and close stream state.
-- Persist server-generated `Task.id` early in the stream lifecycle.
+- Include requester-generated `Task.id` (UUIDv4) in the initial request and use it throughout the stream lifecycle.
 
