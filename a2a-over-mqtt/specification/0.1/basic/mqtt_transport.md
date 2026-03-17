@@ -148,11 +148,9 @@ Typical lifecycle:
 ## Optional Task Handover
 
 1. A card-owning agent **MAY** delegate an in-progress task to a different agent instance. This allows a single published Agent Card to front multiple dynamically spawned or specialized agent instances without requiring each instance to register its own card.
-2. To signal handover, the responding agent **MUST** include an MQTT User Property on the reply:
-   - key: `a2a-handover-to`
-   - value: the delegated agent's Client ID (`{org_id}/{unit_id}/{agent_id}`)
-3. When a requester receives a reply containing `a2a-handover-to`, it **SHOULD** direct all subsequent operations for that `Task.id` to the indicated agent's direct request topic.
-4. The handover property **MAY** appear on any reply or stream message for a given task. Requesters **MUST** honor the most recently received `a2a-handover-to` for a given `Task.id`.
+2. To signal handover, the responding agent **MUST** include MQTT User Property `a2a-responder-agent-id` on the reply, with the value set to the delegated agent's `agent_id`. This reuses the same property defined for shared pool dispatch.
+3. When a requester receives a reply containing `a2a-responder-agent-id`, it **SHOULD** direct all subsequent operations for that `Task.id` to the indicated agent's direct request topic. This behavior is the same regardless of whether the property originates from pool dispatch or task handover.
+4. The property **MAY** appear on any reply or stream message for a given task. Requesters **MUST** honor the most recently received `a2a-responder-agent-id` for a given `Task.id`.
 5. Handover does not alter the task's identity; `Task.id` remains the same across the handover.
 6. If the card-owning agent does not hand over, it is responsible for correctly routing incoming messages to its internal instances (for example by session or `Task.id`). How an agent manages its internal instances is implementation-specific and out of scope.
 
