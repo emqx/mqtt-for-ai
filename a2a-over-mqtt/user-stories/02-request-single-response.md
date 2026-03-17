@@ -33,7 +33,7 @@ Agent A sends one request to Agent B and receives exactly one response message o
 - Response payload may contain:
   - `message`
   - `task`
-- If `task` is present, `task.id` is server-generated and becomes the identifier for any follow-up task operations.
+- If `task` is present, `task.id` echoes the requester-generated UUIDv4 and identifies any follow-up task operations.
 
 ### SDK Requirements Checklist
 
