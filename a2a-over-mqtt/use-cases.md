@@ -9,3 +9,5 @@ This page is aligned with the user stories in `user-stories/`:
 - **One request, multiple binary artifact responses** (`04-request-multi-binary-artifact-responses.md`): request `a2a-artifact-mode=binary` and receive chunked binary artifact updates.
 - **Shared pool dispatch** (`05-shared-pool-dispatch.md`): publish to unit-level pool topic and route follow-up operations using `a2a-responder-agent-id` and requester-generated `Task.id`.
 - **Untrusted-broker security profile** (`06-untrusted-broker-security-profile.md`): use `a2a-security-profile=ubsp-v1` for end-to-end encrypted request/reply/stream payloads with key discovery and property validation.
+- **Task handover** (`07-task-handover.md`): card-owning agent delegates an in-progress task to a spawned instance; requester routes follow-up operations using `a2a-responder-agent-id`.
+- **Multi-turn conversation** (`08-multi-turn-conversation.md`): group multiple request/reply exchanges into a conversation using `Task.context_id` and resume interrupted tasks via `input-required` continuation.
