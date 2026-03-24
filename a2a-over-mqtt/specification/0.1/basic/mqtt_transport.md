@@ -88,6 +88,47 @@ $a2a/v1/request/{org_id}/{unit_id}/pool/{pool_id}
 2. Subscribers **MUST** process retained discovery messages as current registration state.
 3. Subscribers **SHOULD** treat subsequent retained updates on the same discovery topic as replacement state for that agent.
 4. Subscribers **MAY** combine HTTP-discovered cards and MQTT-discovered cards, but topic-scoped MQTT cards are authoritative for MQTT routing.
+5. Subscribers **SHOULD** process the MQTT User Property `a2a-status` on received Agent Card messages to determine agent liveness. See [Presence and Liveness](#presence-and-liveness).
+
+## Presence and Liveness
+
+Agent Cards are published as retained messages and persist on the broker after an agent disconnects. This section defines how agents signal operational status using MQTT User Properties on Agent Card publications, so that subscribers can distinguish a reachable agent from a stale card.
+
+### Liveness via Discovery Topic User Properties
+
+Agents signal liveness by attaching MQTT v5 User Properties to their retained Agent Card publications on the discovery topic. Subscribers receive capability metadata and operational status in a single retained message.
+
+1. Agents **SHOULD** include MQTT User Property `a2a-status` with value `online` when publishing their retained Agent Card.
+2. Agents **SHOULD** include MQTT User Property `a2a-status-source` with value `agent` on Agent Card publications to distinguish agent-published status from broker-managed status.
+
+### Last Will and Testament (LWT) Configuration
+
+1. Agents **SHOULD** configure an MQTT Last Will and Testament (LWT) at connection time:
+   - Will Topic: `$a2a/v1/discovery/{org_id}/{unit_id}/{agent_id}` (same as the agent's discovery topic)
+   - Will Payload: the Agent Card JSON payload
+   - Will Retain: `true`
+   - Will QoS: `1`
+   - Will User Properties: `a2a-status=offline`, `a2a-status-source=agent`
+2. On ungraceful disconnect (crash, network loss), the broker publishes the LWT, replacing the retained card with an offline-annotated version. Subscribers are notified automatically.
+3. On graceful disconnect, agents **SHOULD** republish their retained Agent Card with User Property `a2a-status=offline` before disconnecting, providing immediate notification without waiting for the broker's keep-alive timeout.
+4. The LWT payload is fixed at CONNECT time. If an agent updates its card during a session, the LWT will carry the previous card version. The `a2a-status=offline` signal remains valid; subscribers receive the updated card when the agent reconnects and republishes.
+
+### Optional Presence Heartbeat via Message Expiry
+
+1. To guard against silent failures where an agent's TCP connection remains open but the agent is unresponsive, agents **MAY** publish their retained Agent Card with MQTT v5 `Message Expiry Interval` and User Property `a2a-status=online`.
+2. When using presence heartbeat, agents **SHOULD** set `Message Expiry Interval` to a value between `60` and `300` seconds and **SHOULD** re-publish the retained Agent Card at an interval shorter than the expiry (for example, at half the expiry interval).
+3. If the agent stops re-publishing (crash, hang, or resource exhaustion), the retained Agent Card expires and is removed from the broker. Subscribers that connect after expiry receive no card for that agent, which **SHOULD** be interpreted as the agent being unavailable.
+4. When both LWT and Message Expiry are configured, they provide complementary coverage:
+   - LWT fires immediately on ungraceful TCP disconnect, replacing the card with an offline-annotated version.
+   - Message Expiry catches cases where the connection stays open but the agent is unresponsive.
+5. Heartbeat re-publications **SHOULD** use MQTT QoS 1.
+
+### Presence Subscriber Behavior
+
+1. Subscribers **SHOULD** process the MQTT User Property `a2a-status` on received Agent Card messages. A value of `online` indicates the agent was reachable when the card was published; `offline` indicates a disconnect was detected.
+2. Subscribers **MUST** treat `a2a-status` as advisory and **MUST NOT** use it as a replacement for request/reply error handling and retry behavior.
+3. Subscribers **SHOULD** interpret the absence of a retained Agent Card (no message on the discovery topic) as the agent being unregistered or unavailable.
+4. A subscriber that needs definitive liveness confirmation for a specific agent before committing to a costly operation **MAY** send a lightweight request (for example `tasks/get` with a non-existent `Task.id`) and use the reply timeout as a health signal.
 
 ## Request/Reply Mapping (MQTT v5)
 
@@ -349,15 +390,15 @@ Multi-turn conversations combine three identifier tiers:
 
 ## Optional Broker-Managed Status via MQTT User Properties
 
-To improve discovery liveness, a broker **MAY** attach MQTT v5 User Properties when forwarding discovery messages to subscribers.
+As a complement to agent-published liveness (see [Presence and Liveness](#presence-and-liveness)), a broker **MAY** override or attach MQTT v5 User Properties on retained discovery messages when forwarding them to subscribers.
 
-Recommended properties:
-
-- key: `a2a-status`, value: `"online"` when a registration is accepted or the agent is active
-- key: `a2a-status`, value: `"offline"` when the agent is observed offline
-- key: `a2a-status-source`, value: `"broker"` to indicate transport-level broker status
-
-Subscribers **MUST** treat these status properties as advisory transport metadata and **MUST NOT** treat them as replacement for card payload semantics.
+1. Brokers implementing this feature **SHOULD** set or override the following User Properties based on the agent's MQTT client connection state:
+   - key: `a2a-status`, value: `online` when the agent's client connection is active
+   - key: `a2a-status`, value: `offline` when the agent's client connection is observed disconnected
+   - key: `a2a-status-source`, value: `broker` to indicate the status originates from broker connection tracking (replacing any agent-published `a2a-status-source` value)
+2. Brokers **SHOULD** derive status from the agent's MQTT client connection state, keyed by Client ID (`{org_id}/{unit_id}/{agent_id}`).
+3. Subscribers **MUST** treat broker-managed status properties as advisory transport metadata and **MUST NOT** treat them as a replacement for request/reply error handling.
+4. When `a2a-status-source=broker` is present, subscribers **SHOULD** prefer it over agent-published status for connection-level reachability, as the broker has authoritative knowledge of TCP connection state.
 
 ## Error Handling and Deduplication
 
@@ -398,6 +439,7 @@ An implementation is Core conformant if it supports:
 5. QoS interoperability support: MQTT QoS 1 on discovery, request, and reply paths
 6. Mandatory error-code mapping defined in this profile
 7. Multi-turn conversation patterns (`Task.context_id` semantics and interrupted-task continuation)
+8. Presence and liveness (LWT configuration, `a2a-status` User Property on Agent Card publications)
 
 ### Extended Conformance
 
@@ -409,6 +451,7 @@ An implementation is Extended conformant if it additionally supports one or more
 4. Native binary artifact mode over MQTT
 5. Shared-subscription request dispatch
 6. Untrusted-broker security profile (`ubsp-v1`)
+7. Presence heartbeat via Message Expiry Interval
 
 ## Future Work
 
