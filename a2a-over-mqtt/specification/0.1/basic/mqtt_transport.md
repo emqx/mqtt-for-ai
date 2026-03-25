@@ -108,20 +108,11 @@ Agents signal liveness by attaching MQTT v5 User Properties to their retained Ag
    - Will Payload: the Agent Card JSON payload
    - Will Retain: `true`
    - Will QoS: `1`
-   - Will User Properties: `a2a-status=offline`, `a2a-status-source=agent`
+   - Will User Properties: `a2a-status=offline`, `a2a-status-source=lwt`
 2. On ungraceful disconnect (crash, network loss), the broker publishes the LWT, replacing the retained card with an offline-annotated version. Subscribers are notified automatically.
-3. On graceful disconnect, agents **SHOULD** republish their retained Agent Card with User Property `a2a-status=offline` before disconnecting, providing immediate notification without waiting for the broker's keep-alive timeout.
+3. On graceful disconnect, agents **SHOULD** republish their retained Agent Card with User Properties `a2a-status=offline` and `a2a-status-source=agent` before disconnecting, providing immediate notification without waiting for the broker's keep-alive timeout.
 4. The LWT payload is fixed at CONNECT time. If an agent updates its card during a session, the LWT will carry the previous card version. The `a2a-status=offline` signal remains valid; subscribers receive the updated card when the agent reconnects and republishes.
-
-### Optional Presence Heartbeat via Message Expiry
-
-1. To guard against silent failures where an agent's TCP connection remains open but the agent is unresponsive, agents **MAY** publish their retained Agent Card with MQTT v5 `Message Expiry Interval` and User Property `a2a-status=online`.
-2. When using presence heartbeat, agents **SHOULD** set `Message Expiry Interval` to a value between `60` and `300` seconds and **SHOULD** re-publish the retained Agent Card at an interval shorter than the expiry (for example, at half the expiry interval).
-3. If the agent stops re-publishing (crash, hang, or resource exhaustion), the retained Agent Card expires and is removed from the broker. Subscribers that connect after expiry receive no card for that agent, which **SHOULD** be interpreted as the agent being unavailable.
-4. When both LWT and Message Expiry are configured, they provide complementary coverage:
-   - LWT fires immediately on ungraceful TCP disconnect, replacing the card with an offline-annotated version.
-   - Message Expiry catches cases where the connection stays open but the agent is unresponsive.
-5. Heartbeat re-publications **SHOULD** use MQTT QoS 1.
+5. This profile relies on MQTT keep-alive for connection-level liveness detection. The broker declares a client dead after 1.5× the negotiated Keep Alive interval with no PINGREQ, which triggers the LWT. Application-level heartbeat mechanisms (for example, Message Expiry Interval on retained cards) are not specified in this version; they may be defined in a future revision if MQTT keep-alive proves insufficient.
 
 ### Presence Subscriber Behavior
 
@@ -451,7 +442,6 @@ An implementation is Extended conformant if it additionally supports one or more
 4. Native binary artifact mode over MQTT
 5. Shared-subscription request dispatch
 6. Untrusted-broker security profile (`ubsp-v1`)
-7. Presence heartbeat via Message Expiry Interval
 
 ## Future Work
 
