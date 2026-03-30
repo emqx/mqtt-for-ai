@@ -19,7 +19,7 @@ Agent A holds a multi-turn conversation with Agent B: multiple request/reply exc
 #### Turn 1: Start Conversation
 
 1. Agent A generates `Task.context_id` **C** (UUIDv4) and `Task.id` **T1** (UUIDv4).
-2. Agent A publishes `message/send` to:
+2. Agent A publishes `SendMessage` to:
    - `$a2a/v1/request/{org_id}/{unit_id}/{agent_b_id}`
    - QoS: `1` (recommended)
    - MQTT v5 properties:
@@ -35,7 +35,7 @@ Agent A holds a multi-turn conversation with Agent B: multiple request/reply exc
 
 6. User asks a follow-up question.
 7. Agent A generates new `Task.id` **T2** (UUIDv4), reuses `Task.context_id` **C**.
-8. Agent A publishes `message/send`:
+8. Agent A publishes `SendMessage`:
    - `Correlation Data`: **D2** (fresh)
    - JSON-RPC payload includes `Message.task_id = T2` and `Message.context_id = C`
 9. Agent B creates task **T2** within context **C**. Agent B uses prior context from **T1** to inform its response.
@@ -45,7 +45,7 @@ Agent A holds a multi-turn conversation with Agent B: multiple request/reply exc
 
 #### Initial Request
 
-1. Agent A publishes `message/send` with `Task.id` **T3**, `Task.context_id` **C**, `Correlation Data` **D3**.
+1. Agent A publishes `SendMessage` with `Task.id` **T3**, `Task.context_id` **C**, `Correlation Data` **D3**.
 2. Agent B starts processing, streams partial results echoing **D3**.
 
 #### Input Required
@@ -57,7 +57,7 @@ Agent A holds a multi-turn conversation with Agent B: multiple request/reply exc
 #### User Provides Input
 
 6. User provides the requested information.
-7. Agent A publishes a new `message/send` with the **same** `Task.id` **T3** and `Task.context_id` **C**, fresh `Correlation Data` **D4**.
+7. Agent A publishes a new `SendMessage` with the **same** `Task.id` **T3** and `Task.context_id` **C**, fresh `Correlation Data` **D4**.
 8. Agent B continues processing task **T3** with the new input, streams replies echoing **D4**.
 9. Agent B sends terminal status (`completed`) echoing **D4**.
 
@@ -67,7 +67,7 @@ Agent A holds a multi-turn conversation with Agent B: multiple request/reply exc
 - Include `Message.context_id` in JSON-RPC payload on all requests within a conversation.
 - Optionally include MQTT User Property `a2a-context-id` for transport-level visibility.
 - Detect `input-required` / `auth-required` status as stream-final for current correlation.
-- Resume interrupted tasks: publish new `message/send` with same `Task.id` and `Task.context_id`, fresh `Correlation Data`.
+- Resume interrupted tasks: publish new `SendMessage` with same `Task.id` and `Task.context_id`, fresh `Correlation Data`.
 - Responder SDK: provide access to prior task results within the same `Task.context_id` for context-aware responses.
 - Responder SDK: validate `Task.context_id` consistency — reject if provided `Task.context_id` conflicts with existing task's `Task.context_id`.
 
