@@ -4,4 +4,8 @@ title: Python SDK
 
 # Python SDK
 
-The A2A-over-MQTT Python SDK is coming soon.
+See [README.md](README.md) for usage and API overview.
+
+```bash
+pip install a2a-over-mqtt
+```
