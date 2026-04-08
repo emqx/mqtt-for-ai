@@ -12,10 +12,14 @@ from a2a_over_mqtt.protocol import (
     REPLY_ERROR,
     REPLY_FAILED,
     REPLY_INPUT_REQUIRED,
+    REPLY_SUBMITTED,
     REPLY_TERMINAL,
     REPLY_TEXT,
     REPLY_TOOL,
+    TaskState,
     ValidationError,
+    _extract_part_text,
+    _extract_parts_text,
     classify_reply,
     make_a2a_error,
     make_artifact_event,
@@ -40,7 +44,7 @@ class TestA2ARequest:
         d = json.loads(j)
         assert d["jsonrpc"] == "2.0"
         assert d["id"] == "req-abc123"
-        assert d["method"] == "message/send"
+        assert d["method"] == "SendMessage"
         msg = d["params"]["message"]
         assert msg["parts"][0]["text"] == "Research quantum computing"
         assert msg["taskId"] == "550e8400-e29b-41d4-a716-446655440000"
@@ -94,7 +98,7 @@ class TestA2ARequest:
             {
                 "jsonrpc": "2.0",
                 "id": "r1",
-                "method": "message/send",
+                "method": "SendMessage",
                 "params": {
                     "message": {
                         "role": "ROLE_USER",
@@ -346,7 +350,7 @@ class TestValidateA2ARequest:
             {
                 "jsonrpc": "2.0",
                 "id": "rpc-1",
-                "method": "message/send",
+                "method": "SendMessage",
                 "params": {
                     "message": {
                         "role": "ROLE_USER",
@@ -409,3 +413,235 @@ class TestValidateA2ARequest:
         assert d["id"] == "corr-99"
         assert d["error"]["code"] == -32005
         assert d["error"]["message"] == "Bad request"
+
+
+# --- TaskState enum ---
+
+
+class TestTaskState:
+    def test_enum_values(self):
+        assert TaskState.SUBMITTED == "submitted"
+        assert TaskState.WORKING == "working"
+        assert TaskState.COMPLETED == "completed"
+        assert TaskState.FAILED == "failed"
+        assert TaskState.CANCELED == "canceled"
+        assert TaskState.INPUT_REQUIRED == "input-required"
+        assert TaskState.AUTH_REQUIRED == "auth-required"
+        assert TaskState.REJECTED == "rejected"
+
+    def test_string_equality(self):
+        """StrEnum members compare equal to plain strings."""
+        assert TaskState.WORKING == "working"
+        assert "working" == TaskState.WORKING
+
+    def test_unknown_state_raises(self):
+        """Strict wire mapping rejects unknown states."""
+        import pytest
+
+        with pytest.raises(KeyError):
+            make_status_event("r1", "t1", "bogus")
+
+
+# --- Status timestamp ---
+
+
+class TestStatusTimestamp:
+    def test_status_has_iso_timestamp(self):
+        event = make_status_event("req-1", "t1", "working", message="hi")
+        d = json.loads(event)
+        ts = d["result"]["statusUpdate"]["status"]["timestamp"]
+        assert ts  # non-empty
+        # Verify ISO 8601 format (contains 'T' and timezone info)
+        assert "T" in ts
+
+    def test_timestamp_present_in_all_states(self):
+        for state in ("submitted", "working", "completed", "failed", "canceled"):
+            event = make_status_event("r1", "t1", state)
+            d = json.loads(event)
+            assert "timestamp" in d["result"]["statusUpdate"]["status"]
+
+
+# --- Multi-part extraction ---
+
+
+class TestPartExtraction:
+    def test_text_part(self):
+        assert _extract_part_text({"text": "hello"}) == "hello"
+
+    def test_data_part(self):
+        result = _extract_part_text({"data": {"key": "value"}})
+        assert json.loads(result) == {"key": "value"}
+
+    def test_url_part(self):
+        assert _extract_part_text({"url": "https://example.com"}) == "https://example.com"
+
+    def test_raw_part_with_filename(self):
+        result = _extract_part_text({"raw": "...", "filename": "doc.pdf"})
+        assert result == "[binary: doc.pdf]"
+
+    def test_raw_part_with_media_type(self):
+        result = _extract_part_text({"raw": "...", "mediaType": "image/png"})
+        assert result == "[binary: image/png]"
+
+    def test_raw_part_default(self):
+        result = _extract_part_text({"raw": "..."})
+        assert result == "[binary: binary]"
+
+    def test_empty_part(self):
+        assert _extract_part_text({}) == ""
+
+    def test_multi_part_concatenation(self):
+        parts = [{"text": "hello "}, {"text": "world"}]
+        assert _extract_parts_text(parts) == "hello world"
+
+    def test_mixed_parts(self):
+        parts = [{"text": "See: "}, {"url": "https://example.com"}]
+        assert _extract_parts_text(parts) == "See: https://example.com"
+
+
+# --- classify_reply: task and message oneofs ---
+
+
+class TestClassifyReplyTaskOneof:
+    def test_task_completed_with_artifacts(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "task": {
+                    "id": "t1",
+                    "status": {"state": "TASK_STATE_COMPLETED"},
+                    "artifacts": [
+                        {"parts": [{"text": "result text"}]},
+                    ],
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_TERMINAL
+        assert content == "result text"
+
+    def test_task_completed_prefers_artifact_over_message(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "task": {
+                    "id": "t1",
+                    "status": {
+                        "state": "TASK_STATE_COMPLETED",
+                        "message": {
+                            "parts": [{"text": "status message"}],
+                        },
+                    },
+                    "artifacts": [
+                        {"parts": [{"text": "artifact text"}]},
+                    ],
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_TERMINAL
+        assert content == "artifact text"
+
+    def test_task_failed(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "task": {
+                    "id": "t1",
+                    "status": {
+                        "state": "TASK_STATE_FAILED",
+                        "message": {"parts": [{"text": "oops"}]},
+                    },
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_FAILED
+        assert content == "oops"
+
+    def test_task_submitted(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "task": {
+                    "id": "t1",
+                    "status": {"state": "TASK_STATE_SUBMITTED"},
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_SUBMITTED
+        assert content == "t1"
+
+    def test_task_input_required(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "task": {
+                    "id": "t1",
+                    "status": {
+                        "state": "TASK_STATE_INPUT_REQUIRED",
+                        "message": {"parts": [{"text": "Need input"}]},
+                    },
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_INPUT_REQUIRED
+        assert content == "Need input"
+
+
+class TestClassifyReplyMessageOneof:
+    def test_standalone_message(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "message": {
+                    "messageId": "m1",
+                    "role": "ROLE_AGENT",
+                    "parts": [{"text": "hello from agent"}],
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_TEXT
+        assert content == "hello from agent"
+
+    def test_message_with_multi_parts(self):
+        data = {
+            "jsonrpc": "2.0",
+            "id": "r1",
+            "result": {
+                "message": {
+                    "parts": [
+                        {"text": "part1 "},
+                        {"data": {"key": "val"}},
+                    ],
+                }
+            },
+        }
+        kind, content = classify_reply(data)
+        assert kind == REPLY_TEXT
+        assert "part1 " in content
+        assert '"key"' in content
+
+
+# --- Artifact append ---
+
+
+class TestArtifactAppend:
+    def test_append_false_by_default(self):
+        event = make_artifact_event("r1", "t1", "text")
+        d = json.loads(event)
+        assert "append" not in d["result"]["artifactUpdate"]
+
+    def test_append_true(self):
+        event = make_artifact_event("r1", "t1", "text", append=True)
+        d = json.loads(event)
+        assert d["result"]["artifactUpdate"]["append"] is True

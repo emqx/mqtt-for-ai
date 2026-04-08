@@ -135,19 +135,26 @@ class Responder(abc.ABC):
         ] = {}  # task_id -> (timestamp, state, result)
         task_context: dict[str, str] = {}  # task_id -> context_id
 
-        try:
-            async with aiomqtt.Client(
-                **self._mqtt.client_kwargs(
-                    identifier=f"{self._topics.org}/{self._topics.unit}/{self._agent_id}",
-                    will=will,
-                ),
-            ) as client:
+        async with aiomqtt.Client(
+            **self._mqtt.client_kwargs(
+                identifier=f"{self._topics.org}/{self._topics.unit}/{self._agent_id}",
+                will=will,
+            ),
+        ) as client:
+            try:
                 await client.subscribe(request_topic, qos=1)
+                # Publish online discovery card with presence User Properties
+                online_props = Properties(PacketTypes.PUBLISH)
+                online_props.UserProperty = [
+                    ("a2a-status", "online"),
+                    ("a2a-status-source", "agent"),
+                ]
                 await client.publish(
                     self._topics.discovery(self._agent_id),
                     card_json,
                     qos=1,
                     retain=True,
+                    properties=online_props,
                 )
                 log.info("Listening on %s", request_topic)
 
@@ -178,16 +185,46 @@ class Responder(abc.ABC):
                         continue
                     method = data.get("method", "")
 
-                    if method == "tasks/cancel":
+                    if method == "CancelTask":
                         cancel_id = data.get("params", {}).get("id", "")
                         if not response_topic or not correlation:
                             log.warning(
-                                "tasks/cancel missing MQTT v5 properties, ignoring"
+                                "CancelTask missing MQTT v5 properties, ignoring"
                             )
                             continue
+                        request_id = data.get("id", "")
+                        props = make_properties(correlation_data=correlation)
                         if cancel_id and cancel_id in task_registry:
                             task_registry[cancel_id].cancel()
+                            event = make_status_event(
+                                request_id=request_id,
+                                task_id=cancel_id,
+                                state="canceled",
+                                context_id=task_context.get(cancel_id, ""),
+                            )
+                            await client.publish(
+                                response_topic, event, qos=1, properties=props
+                            )
                             log.info("Canceling task %s", cancel_id)
+                        elif cancel_id and cancel_id in completed_tasks:
+                            _, state, _ = completed_tasks[cancel_id]
+                            event = make_status_event(
+                                request_id=request_id,
+                                task_id=cancel_id,
+                                state=state,
+                                context_id=task_context.get(cancel_id, ""),
+                            )
+                            await client.publish(
+                                response_topic, event, qos=1, properties=props
+                            )
+                        else:
+                            await _send_error(
+                                client,
+                                response_topic,
+                                correlation,
+                                A2A_INVALID_PARAMS,
+                                f"Unknown task: {cancel_id}",
+                            )
                         continue
 
                     result = validate_a2a_request(data, response_topic, correlation)
@@ -309,13 +346,29 @@ class Responder(abc.ABC):
                     )
                     task_registry[req.task_id] = task
                     task.add_done_callback(_on_done)
-        finally:
-            # Cancel inflight tasks on shutdown
-            tasks = list(task_registry.values())
-            for task in tasks:
-                task.cancel()
-            if tasks:
-                await asyncio.gather(*tasks, return_exceptions=True)
+            finally:
+                # Cancel inflight tasks on shutdown
+                tasks = list(task_registry.values())
+                for task in tasks:
+                    task.cancel()
+                if tasks:
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                # Publish offline status before disconnect
+                try:
+                    offline_props = Properties(PacketTypes.PUBLISH)
+                    offline_props.UserProperty = [
+                        ("a2a-status", "offline"),
+                        ("a2a-status-source", "agent"),
+                    ]
+                    await client.publish(
+                        self._topics.discovery(self._agent_id),
+                        card_json,
+                        qos=1,
+                        retain=True,
+                        properties=offline_props,
+                    )
+                except Exception:
+                    pass
 
     async def _handle_request(
         self,

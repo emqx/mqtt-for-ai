@@ -25,6 +25,7 @@ from a2a_over_mqtt.protocol import (
     REPLY_TIMEOUT,
     REPLY_TOOL,
     TERMINAL_KINDS,
+    TaskState,
     TaskTarget,
     ValidationError,
     classify_reply,
@@ -48,6 +49,7 @@ __all__ = [
     # protocol
     "A2ARequest",
     "A2AResponse",
+    "TaskState",
     "TaskTarget",
     "ValidationError",
     "classify_reply",
