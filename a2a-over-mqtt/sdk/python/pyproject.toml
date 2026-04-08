@@ -2,14 +2,30 @@
 name = "a2a-over-mqtt"
 version = "0.1.0"
 description = "Python SDK for the A2A-over-MQTT protocol"
+readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.11"
+authors = [
+    { name = "Ivan Dyachkov", email = "dev@dyachkov.org" },
+    { name = "Zaiming Shi", email = "zmstone@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "aiomqtt>=2.5.0",
     "paho-mqtt>=2.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/emqx/mqtt-for-ai"
+Repository = "https://github.com/emqx/mqtt-for-ai"
+Issues = "https://github.com/emqx/mqtt-for-ai/issues"
+
 [dependency-groups]
-dev = ["pytest>=8", "pytest-asyncio>=0.25"]
+dev = ["build>=1.0", "pytest>=8", "pytest-asyncio>=0.25", "twine>=6.0"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

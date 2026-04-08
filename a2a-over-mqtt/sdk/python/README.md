@@ -95,3 +95,10 @@ asyncio.run(main())
 uv sync
 uv run python -m pytest tests/ -v
 ```
+
+### Build and publish
+
+```bash
+uv run python -m build
+uv run twine upload dist/*
+```
