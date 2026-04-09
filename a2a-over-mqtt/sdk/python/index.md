@@ -4,7 +4,7 @@ title: Python SDK
 
 # Python SDK
 
-See [README.md](README.md) for usage and API overview.
+See [PyPI](https://pypi.org/project/a2a-over-mqtt/) for usage and API overview.
 
 ```bash
 pip install a2a-over-mqtt
