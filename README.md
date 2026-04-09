@@ -2,7 +2,7 @@
 
 Specifications and SDKs for using MQTT as a transport layer in AI agent systems.
 
-Documentation: [emqx.com/mqtt-for-ai](https://www.emqx.com/mqtt-for-ai/)
+Documentation: [emqx.com/mqtt-for-ai](https://www.emqx.com/en/mqtt-for-ai/)
 
 ## Specifications
 
