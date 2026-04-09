@@ -1031,14 +1031,14 @@ undetermined state, reduce\
 the retransmittions after flow recover and last avoid data transmission
 get cancelled due to connection close.
 
-~~~~The flow owner~~~~ Either endpoint can trigger the graceful shutdown
+**The flow owner** Either endpoint can trigger the graceful shutdown
 of the flow by sending a QUIC STREAM FRAME with FIN flag.
 
 The flow owner MUST finish sending a complete MQTT packet before
 starting the graceful shutdown procedure.
 
-~~~~It is protocol error level 0 if the graceful shutdown of the flow is
-not initiated by the flow owner~~~~
+**It is protocol error level 0 if the graceful shutdown of the flow is
+not initiated by the flow owner**
 
 It is protocol error level 2 for data flow and protocol error level 0
 for control flow if the sender terminates the flow with an incomplete
