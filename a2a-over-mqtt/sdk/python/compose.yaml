@@ -1,0 +1,11 @@
+services:
+  emqx:
+    image: emqx/emqx:6.2.3
+    ports:
+      - "${A2A_E2E_MQTT_PORT:-1883}:1883"
+      - "${A2A_EMQX_DASHBOARD_PORT:-18083}:18083"
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5

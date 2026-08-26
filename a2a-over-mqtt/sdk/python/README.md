@@ -22,10 +22,12 @@ uv add a2a-over-mqtt
 import asyncio
 from a2a_over_mqtt import MqttConfig, TopicSpace, Responder, build_card, A2ARequest
 
+
 class MyAgent(Responder):
     async def on_request(self, request: A2ARequest, stream) -> str:
         await stream("thinking...")
         return f"You said: {request.text}"
+
 
 async def main():
     mqtt = MqttConfig(host="localhost", port=1883)
@@ -44,6 +46,7 @@ async def main():
     )
     await agent.run()
 
+
 asyncio.run(main())
 ```
 
@@ -53,6 +56,7 @@ asyncio.run(main())
 import asyncio
 from a2a_over_mqtt import MqttConfig, TopicSpace, Requester, A2ARequest
 
+
 async def main():
     mqtt = MqttConfig(host="localhost", port=1883)
     topics = TopicSpace(org="myorg", unit="default")
@@ -61,6 +65,7 @@ async def main():
     req = A2ARequest(text="Hello, agent!", request_id="req-1")
     async for kind, content in requester.stream("echo", req.to_json(), "corr-1"):
         print(f"{kind}: {content}")
+
 
 asyncio.run(main())
 ```
@@ -93,8 +98,15 @@ asyncio.run(main())
 
 ```bash
 uv sync
+docker compose up -d --wait
 uv run python -m pytest tests/ -v
+docker compose down
 ```
+
+The local EMQX broker listens on `localhost:1883`; its dashboard is available at
+`http://localhost:18083`. To run the end-to-end test against another broker, set
+`A2A_E2E_MQTT_HOST` and `A2A_E2E_MQTT_PORT`. The latter also overrides the
+local Compose MQTT port; `A2A_EMQX_DASHBOARD_PORT` overrides the dashboard port.
 
 ### Build and publish
 
