@@ -19,9 +19,19 @@ defaults:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      emqx:
+        image: emqx/emqx:6.2.3
+        ports:
+          - 1883:1883
+        options: >-
+          --health-cmd "curl -fsS http://localhost:18083/status"
+          --health-interval 5s
+          --health-timeout 25s
+          --health-retries 5
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
