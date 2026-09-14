@@ -88,6 +88,9 @@ class Requester:
         Correlation Data on first-reply timeout, validates Correlation Data
         on incoming messages. Yields ("timeout", "") if all attempts are
         exhausted or the stream stalls after receiving at least one reply.
+
+        The idle deadline includes time spent processing yielded replies,
+        but the timeout only interrupts waiting for the next MQTT message.
         """
         session = uuid.uuid4().hex[:12]
         reply_t = self._topics.reply(self._requester_id, session)
@@ -125,40 +128,45 @@ class Requester:
                     properties=props,
                 )
 
-                try:
-                    loop = asyncio.get_running_loop()
-                    cm = asyncio.timeout_at(loop.time() + self._first_reply_timeout)
-                    async with cm:
-                        async for mqtt_msg in client.messages:
-                            msg_corr = get_correlation_data(mqtt_msg)
-                            if msg_corr not in valid_correlations:
-                                continue
+                loop = asyncio.get_running_loop()
+                deadline = loop.time() + self._first_reply_timeout
+                messages = aiter(client.messages)
+                while True:
+                    try:
+                        async with asyncio.timeout_at(deadline):
+                            mqtt_msg = await anext(messages, None)
+                    except TimeoutError:
+                        if got_first_reply:
+                            yield REPLY_TIMEOUT, ""
+                            return
+                        # No reply at all: retry (next attempt)
+                        break
 
-                            raw = mqtt_msg.payload.decode() if mqtt_msg.payload else ""
-                            if not raw:
-                                continue
+                    if mqtt_msg is None:
+                        break
+                    msg_corr = get_correlation_data(mqtt_msg)
+                    if msg_corr not in valid_correlations:
+                        continue
 
-                            try:
-                                data = json.loads(raw)
-                            except Exception:
-                                continue
+                    raw = mqtt_msg.payload.decode() if mqtt_msg.payload else ""
+                    if not raw:
+                        continue
 
-                            kind, content = classify_reply(data)
-                            if not kind:
-                                continue
+                    try:
+                        data = json.loads(raw)
+                    except Exception:
+                        continue
 
-                            got_first_reply = True
-                            cm.reschedule(loop.time() + self._stream_idle_timeout)
+                    kind, content = classify_reply(data)
+                    if not kind:
+                        continue
 
-                            yield kind, content
-                            if kind in TERMINAL_KINDS:
-                                return
-                except TimeoutError:
-                    if got_first_reply:
-                        yield REPLY_TIMEOUT, ""
+                    got_first_reply = True
+                    deadline = loop.time() + self._stream_idle_timeout
+
+                    yield kind, content
+                    if kind in TERMINAL_KINDS:
                         return
-                    # No reply at all: retry (next attempt)
-                    continue
 
             # All attempts exhausted
             yield REPLY_TIMEOUT, ""
