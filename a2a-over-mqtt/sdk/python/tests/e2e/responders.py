@@ -1,7 +1,7 @@
 import asyncio
 from typing import Protocol
 
-from a2a_over_mqtt import A2ARequest, Responder
+from a2a_over_mqtt import A2ARequest, Responder, RoundOutcome, TaskState
 
 
 class _StreamCallback(Protocol):
@@ -58,3 +58,30 @@ class ControlledResponder(Responder):
         await stream("waiting for release")
         await self.release.wait()
         return f"echo: {request.text}"
+
+
+class InterruptingResponder(Responder):
+    """Pauses the first round and finishes the task on a continuation."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.requests: list[A2ARequest] = []
+        self.continuations: list[A2ARequest] = []
+
+    async def on_request(
+        self,
+        request: A2ARequest,
+        stream: _StreamCallback,
+    ) -> RoundOutcome:
+        self.requests.append(request)
+        await stream("need more input")
+        return RoundOutcome(TaskState.INPUT_REQUIRED, "which language?")
+
+    async def on_continue(
+        self,
+        request: A2ARequest,
+        stream: _StreamCallback,
+    ) -> str:
+        self.continuations.append(request)
+        await stream("continuing")
+        return f"done: {request.text}"

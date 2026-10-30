@@ -37,6 +37,8 @@ _ROLE_TO_WIRE = {"user": "ROLE_USER", "agent": "ROLE_AGENT"}
 
 # --- A2A error codes (Mandatory Binding-Specific Error Mapping) ---
 
+#: A2A core's TaskNotFoundError.  The MQTT binding does not override it.
+A2A_TASK_NOT_FOUND = -32001
 A2A_REQUEST_EXPIRED = -32003
 A2A_RESPONDER_UNAVAILABLE = -32004
 A2A_TRANSPORT_PROTOCOL_ERROR = -32005
@@ -325,6 +327,9 @@ class A2ARequest:
     request_id: str
     task_id: str | None = None
     context_id: str | None = None
+    #: Stable across serializations of one logical send.  A retry reuses it;
+    #: a continuation is a new Message and gets a new id.
+    message_id: str = ""
     sender: str = ""
     variables: dict[str, str] = field(default_factory=dict)
 
@@ -340,8 +345,12 @@ class A2ARequest:
             metadata["sender"] = self.sender
         if self.variables:
             metadata["variables"] = self.variables
+        if not self.message_id:
+            # Mint once and keep it: a re-publish of this request (a retry) is
+            # the same Message, which is what a responder's dedup keys on.
+            self.message_id = uuid.uuid4().hex
         message: dict = {
-            "messageId": uuid.uuid4().hex,
+            "messageId": self.message_id,
             "role": _ROLE_TO_WIRE["user"],
             "parts": [{"text": self.text}],
             "taskId": self.task_id,
@@ -371,11 +380,13 @@ class A2ARequest:
         # Preserve wire value; empty means "untracked" (do not auto-generate,
         # otherwise dedup context_id mismatch rejects retries that omit it).
         context_id = message.get("contextId") or ""
+        message_id = message.get("messageId") or ""
         return cls(
             text=text,
             request_id=d.get("id", f"req-{time.time_ns()}"),
             task_id=task_id,
             context_id=context_id,
+            message_id=message_id,
             sender=metadata.get("sender", ""),
             variables=metadata.get("variables", {}),
         )

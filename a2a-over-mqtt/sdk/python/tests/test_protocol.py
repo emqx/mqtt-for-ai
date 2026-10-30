@@ -59,6 +59,27 @@ class TestA2ARequest:
         assert restored.sender == "cli"
         assert restored.variables == {"topic": "quantum"}
 
+    def test_message_id_is_stable_across_serializations(self):
+        req = A2ARequest(text="hello", request_id="r1")
+        first = json.loads(req.to_json())["params"]["message"]["messageId"]
+        second = json.loads(req.to_json())["params"]["message"]["messageId"]
+        assert first == second
+        assert A2ARequest.from_json(req.to_json()).message_id == first
+
+    def test_a_continuation_is_a_new_message_on_the_same_task(self):
+        first = A2ARequest(
+            text="hello", request_id="r1", task_id="t1", context_id="c1"
+        )
+        first_id = json.loads(first.to_json())["params"]["message"]["messageId"]
+        again = A2ARequest(
+            text="more", request_id="r2", task_id="t1", context_id="c1"
+        )
+        second_id = json.loads(again.to_json())["params"]["message"]["messageId"]
+
+        assert first_id != second_id
+        assert again.task_id == first.task_id
+        assert again.context_id == first.context_id
+
     def test_minimal(self):
         import uuid as uuid_mod
 

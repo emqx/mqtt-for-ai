@@ -5,7 +5,12 @@ import pytest
 from zmqtt import MQTTClientV5, create_client
 
 from a2a_over_mqtt import A2ARequest, MqttConfig, Requester, TopicSpace, build_card
-from tests.e2e.responders import ControlledResponder, EchoResponder, ResponderRunner
+from tests.e2e.responders import (
+    ControlledResponder,
+    EchoResponder,
+    InterruptingResponder,
+    ResponderRunner,
+)
 
 
 @pytest.fixture
@@ -73,6 +78,16 @@ def mismatched_context_request(
 
 
 @pytest.fixture
+def continuation_request(a2a_request: A2ARequest, run_id: str) -> A2ARequest:
+    return A2ARequest(
+        text="简体",
+        request_id=f"continue-{run_id}",
+        task_id=a2a_request.task_id,
+        context_id=a2a_request.context_id,
+    )
+
+
+@pytest.fixture
 def correlation_id(run_id: str) -> str:
     return f"correlation-{run_id}"
 
@@ -119,6 +134,21 @@ def controlled_responder(
     agent_card: dict,
 ) -> ControlledResponder:
     return ControlledResponder(
+        agent_id=agent_id,
+        mqtt=mqtt_config,
+        topics=topics,
+        card=agent_card,
+    )
+
+
+@pytest.fixture
+def interrupting_responder(
+    mqtt_config: MqttConfig,
+    topics: TopicSpace,
+    agent_id: str,
+    agent_card: dict,
+) -> InterruptingResponder:
+    return InterruptingResponder(
         agent_id=agent_id,
         mqtt=mqtt_config,
         topics=topics,

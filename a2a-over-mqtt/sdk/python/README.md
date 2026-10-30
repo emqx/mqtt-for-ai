@@ -70,6 +70,32 @@ async def main():
 asyncio.run(main())
 ```
 
+## Multi-turn (interrupted) tasks
+
+A responder can pause a task instead of finishing it. Return
+`RoundOutcome(TaskState.INPUT_REQUIRED, "which language?")`; no artifact and no
+terminal status are published, and the task stays open. A later `SendMessage`
+with the same `Task.id` and `context_id` calls `on_continue()`:
+
+```python
+from a2a_over_mqtt import Responder, RoundOutcome, TaskState
+
+
+class Translator(Responder):
+    async def on_request(self, request, stream):
+        return RoundOutcome(TaskState.INPUT_REQUIRED, "which language?")
+
+    async def on_continue(self, request, stream):
+        return f"translated as: {request.text}"
+```
+
+The client sends the continuation as a new `A2ARequest` with the same
+`task_id`/`context_id`; a new request is a new Message (a new `messageId`),
+while re-serializing one request keeps its `messageId`, so a retry is
+recognizable as the same Message. `TaskState.AUTH_REQUIRED` is the same shape
+for credentials. `GetTask` reports the current state, and a message to a
+terminal task is refused with `-32602`.
+
 ## API overview
 
 ### Configuration
@@ -79,7 +105,8 @@ asyncio.run(main())
 
 ### Protocol (pure, no I/O)
 
-- **`A2ARequest`** / **`A2AResponse`**: JSON-RPC 2.0 message types with serialization.
+- **`A2ARequest`** / **`A2AResponse`**: JSON-RPC 2.0 message types with serialization. A request keeps one `message_id` across serializations; a continuation is a new request on the same `task_id`/`context_id`.
+- **`TaskState`**: The A2A task states, including `INPUT_REQUIRED` and `AUTH_REQUIRED`.
 - **`make_status_event()`** / **`make_artifact_event()`**: Build streaming response messages.
 - **`classify_reply(data)`**: Parse a reply into `(kind, content)` tuples.
 - **`validate_a2a_request(payload, response_topic, correlation)`**: Validate inbound requests. Returns `A2ARequest` or `ValidationError`.
@@ -92,7 +119,8 @@ asyncio.run(main())
 ### High-level
 
 - **`Requester`**: Send requests and stream replies with configurable retry/timeout.
-- **`Responder`**: Abstract base class for agents. Implement `on_request()`, call `run()`. Handles the full protocol lifecycle: ack, streaming, artifact, terminal status, deduplication, cancellation, and LWT.
+- **`RoundOutcome`**: What one round ended as — `completed`, `failed`, `rejected`, or an interrupted state that keeps the task open.
+- **`Responder`**: Abstract base class for agents. Implement `on_request()` (and optionally `on_continue()`), call `run()`. Handles ack, streaming, artifact, terminal status, interrupted-task continuation, deduplication, `GetTask`, cancellation, and LWT.
 
 ## Development
 

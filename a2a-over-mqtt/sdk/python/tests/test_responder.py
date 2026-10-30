@@ -8,11 +8,12 @@ import pytest
 
 from a2a_over_mqtt.protocol import (
     A2ARequest,
+    TaskState,
     classify_reply,
     REPLY_ARTIFACT,
     REPLY_TERMINAL,
 )
-from a2a_over_mqtt.responder import Responder
+from a2a_over_mqtt.responder import Responder, RoundOutcome
 from a2a_over_mqtt.mqtt import MqttConfig
 from a2a_over_mqtt.topics import TopicSpace
 
@@ -37,6 +38,40 @@ class NoneResponder(Responder):
 
     async def on_request(self, request, stream):
         return None
+
+
+class InterruptingResponder(Responder):
+    """Test responder that pauses the task for more input."""
+
+    async def on_request(self, request, stream):
+        await stream("need input")
+        return RoundOutcome(TaskState.INPUT_REQUIRED, "which language?")
+
+
+class ContinuingResponder(Responder):
+    """Test responder that finishes an interrupted task on a continuation."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.continued: list[A2ARequest] = []
+
+    async def on_request(self, request, stream):
+        return RoundOutcome(TaskState.INPUT_REQUIRED, "which language?")
+
+    async def on_continue(self, request, stream):
+        self.continued.append(request)
+        return f"done: {request.text}"
+
+
+class OutcomeResponder(Responder):
+    """Test responder that returns a chosen non-completed outcome."""
+
+    def __init__(self, state: TaskState, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._state = state
+
+    async def on_request(self, request, stream):
+        return RoundOutcome(self._state, "the reason")
 
 
 def _make_responder(cls=EchoResponder):
@@ -154,3 +189,123 @@ class TestHandleRequest:
         for call in client.publish.call_args_list:
             data = json.loads(call.args[1])
             assert data["id"] == "r1", f"Expected JSON-RPC id 'r1', got '{data['id']}'"
+
+
+class TestRoundOutcome:
+    @pytest.mark.asyncio
+    async def test_interrupted_outcome_publishes_no_terminal(self):
+        responder = _make_responder(InterruptingResponder)
+        client = AsyncMock()
+        req = A2ARequest(text="hello", request_id="r1", task_id="t1", context_id="c1")
+
+        result = await responder._handle_request(
+            client, req, "reply/topic", "corr-1", asyncio.Semaphore(4)
+        )
+
+        assert result == "which language?"
+        states = [
+            json.loads(call.args[1])["result"]["statusUpdate"]["status"]["state"]
+            for call in client.publish.call_args_list
+        ]
+        assert states == [
+            "TASK_STATE_SUBMITTED",
+            "TASK_STATE_WORKING",
+            "TASK_STATE_INPUT_REQUIRED",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_on_continue_defaults_to_on_request(self):
+        responder = _make_responder()
+        req = A2ARequest(text="hello", request_id="r1", task_id="t1", context_id="c1")
+
+        assert await responder.on_continue(req, AsyncMock()) == "echo: hello"
+
+    @pytest.mark.asyncio
+    async def test_a_continuation_round_calls_on_continue(self):
+        responder = _make_responder(ContinuingResponder)
+        client = AsyncMock()
+        req = A2ARequest(text="简体", request_id="r2", task_id="t1", context_id="c1")
+
+        result = await responder._handle_request(
+            client,
+            req,
+            "reply/topic",
+            "corr-2",
+            asyncio.Semaphore(4),
+            None,
+            True,
+        )
+
+        assert result == "done: 简体"
+        assert [request.text for request in responder.continued] == ["简体"]
+        states = [
+            json.loads(call.args[1])["result"]["statusUpdate"]["status"]["state"]
+            for call in client.publish.call_args_list
+            if "statusUpdate" in json.loads(call.args[1])["result"]
+        ]
+        assert states == ["TASK_STATE_SUBMITTED", "TASK_STATE_COMPLETED"]
+
+    @pytest.mark.asyncio
+    async def test_failed_outcome_publishes_failed_with_its_text(self):
+        responder = OutcomeResponder(
+            TaskState.FAILED,
+            agent_id="test-agent",
+            mqtt=MqttConfig(),
+            topics=TopicSpace(org="test", unit="default"),
+            card={"name": "Test"},
+        )
+        client = AsyncMock()
+        req = A2ARequest(text="hello", request_id="r1", task_id="t1", context_id="c1")
+
+        await responder._handle_request(
+            client, req, "reply/topic", "corr-1", asyncio.Semaphore(4)
+        )
+
+        calls = client.publish.call_args_list
+        assert len(calls) == 2
+        failed = json.loads(calls[1].args[1])
+        status = failed["result"]["statusUpdate"]["status"]
+        assert status["state"] == "TASK_STATE_FAILED"
+        assert status["message"]["parts"][0]["text"] == "the reason"
+
+    @pytest.mark.asyncio
+    async def test_rejected_outcome_publishes_rejected_with_its_text(self):
+        responder = OutcomeResponder(
+            TaskState.REJECTED,
+            agent_id="test-agent",
+            mqtt=MqttConfig(),
+            topics=TopicSpace(org="test", unit="default"),
+            card={"name": "Test"},
+        )
+        client = AsyncMock()
+        req = A2ARequest(text="hello", request_id="r1", task_id="t1", context_id="c1")
+
+        await responder._handle_request(
+            client, req, "reply/topic", "corr-1", asyncio.Semaphore(4)
+        )
+
+        calls = client.publish.call_args_list
+        assert len(calls) == 2
+        rejected = json.loads(calls[1].args[1])
+        status = rejected["result"]["statusUpdate"]["status"]
+        assert status["state"] == "TASK_STATE_REJECTED"
+        assert status["message"]["parts"][0]["text"] == "the reason"
+
+    @pytest.mark.asyncio
+    async def test_completed_outcome_publishes_artifact_and_terminal(self):
+        responder = OutcomeResponder(
+            TaskState.COMPLETED,
+            agent_id="test-agent",
+            mqtt=MqttConfig(),
+            topics=TopicSpace(org="test", unit="default"),
+            card={"name": "Test"},
+        )
+        client = AsyncMock()
+        req = A2ARequest(text="hello", request_id="r1", task_id="t1", context_id="c1")
+
+        result = await responder._handle_request(
+            client, req, "reply/topic", "corr-1", asyncio.Semaphore(4)
+        )
+
+        assert result == "the reason"
+        assert len(client.publish.call_args_list) == 3

@@ -12,6 +12,7 @@ from a2a_over_mqtt.protocol import (
     A2A_PARSE_ERROR,
     A2A_REQUEST_EXPIRED,
     A2A_RESPONDER_UNAVAILABLE,
+    A2A_TASK_NOT_FOUND,
     A2A_TRANSPORT_PROTOCOL_ERROR,
     A2ARequest,
     A2AResponse,
@@ -35,7 +36,7 @@ from a2a_over_mqtt.protocol import (
     validate_a2a_request,
 )
 from a2a_over_mqtt.requester import Requester
-from a2a_over_mqtt.responder import Responder
+from a2a_over_mqtt.responder import Responder, RoundOutcome
 from a2a_over_mqtt.topics import TopicSpace
 
 __all__ = [
@@ -69,6 +70,7 @@ __all__ = [
     "TERMINAL_KINDS",
     "A2A_REQUEST_EXPIRED",
     "A2A_RESPONDER_UNAVAILABLE",
+    "A2A_TASK_NOT_FOUND",
     "A2A_TRANSPORT_PROTOCOL_ERROR",
     "A2A_INVALID_PARAMS",
     "A2A_PARSE_ERROR",
@@ -78,4 +80,5 @@ __all__ = [
     # high-level
     "Requester",
     "Responder",
+    "RoundOutcome",
 ]
